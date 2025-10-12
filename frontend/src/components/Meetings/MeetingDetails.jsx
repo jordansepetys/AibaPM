@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useStore from '../../stores/useStore';
 import { meetingsAPI } from '../../services/api';
 import MentorFeedback from './MentorFeedback';
+import WikiUpdateSuggestions from './WikiUpdateSuggestions';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -268,6 +269,9 @@ const MeetingDetails = () => {
 
                 {/* Mentor Feedback */}
                 <MentorFeedback meeting={selectedMeeting} />
+
+                {/* Wiki Update Suggestions */}
+                <WikiUpdateSuggestions meeting={selectedMeeting} />
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>

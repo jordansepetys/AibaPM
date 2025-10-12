@@ -268,3 +268,182 @@ Provide ONLY the JSON response, no additional text.`;
     throw new Error('Failed to generate mentor feedback');
   }
 };
+
+/**
+ * Generate wiki update suggestions based on meeting content
+ * @param {string} currentWiki - Current wiki markdown content
+ * @param {string} transcript - Meeting transcript
+ * @param {Object} summary - Meeting summary
+ * @param {string} projectName - Project name
+ * @returns {Promise<Object>} Wiki update suggestions
+ */
+export const generateWikiUpdateSuggestions = async (currentWiki, transcript, summary, projectName) => {
+  const backend = AI_BACKEND;
+
+  const prompt = `You are a technical documentation assistant. Analyze a meeting transcript and suggest updates to a project wiki.
+
+Current Wiki Content:
+---
+${currentWiki}
+---
+
+Meeting Summary:
+${JSON.stringify(summary, null, 2)}
+
+Meeting Transcript:
+${transcript.substring(0, 3000)} ${transcript.length > 3000 ? '...(truncated)' : ''}
+
+Your task:
+1. Identify NEW information that should be added to the wiki
+2. Identify CHANGES to existing information (e.g., switching from one technology to another)
+3. Structure suggestions into:
+   - User Guide sections (how-to, basic usage, getting started)
+   - Technical Documentation sections (architecture decisions, implementation details, APIs)
+4. Generate a changelog entry if there are significant changes
+
+Respond in JSON format:
+{
+  "has_updates": true/false,
+  "user_guide_updates": [
+    {
+      "section": "section name (e.g., 'Getting Started', 'How to Use Feature X')",
+      "action": "add" or "update" or "replace",
+      "content": "markdown content to add/update",
+      "reason": "why this update is needed"
+    }
+  ],
+  "technical_updates": [
+    {
+      "section": "section name (e.g., 'Architecture', 'API Design', 'Technology Stack')",
+      "action": "add" or "update" or "replace",
+      "content": "markdown content to add/update",
+      "reason": "why this update is needed",
+      "is_change": true/false (if replacing old technology/approach)
+    }
+  ],
+  "changes_detected": [
+    {
+      "from": "old value (e.g., 'SignalR')",
+      "to": "new value (e.g., 'PostMessage')",
+      "context": "what changed (e.g., 'Communication method')"
+    }
+  ],
+  "changelog_entry": "Brief changelog note for this meeting (e.g., 'Updated communication from SignalR to PostMessage')"
+}
+
+IMPORTANT:
+- Only suggest updates for information actually discussed in the meeting
+- If meeting discusses existing wiki content without changes, set has_updates to false
+- Be specific about what sections to update
+- Make content concise and clear
+
+Provide ONLY the JSON response, no additional text.`;
+
+  try {
+    let suggestions;
+
+    if (backend === 'anthropic') {
+      const client = getAnthropicClient();
+      if (!client) {
+        throw new Error('Anthropic API key not configured');
+      }
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      suggestions = message.content[0].text;
+    } else {
+      const client = getOpenAIClient();
+      if (!client) {
+        throw new Error('OpenAI API key not configured');
+      }
+      const completion = await client.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a technical documentation assistant that analyzes meetings and suggests wiki updates.' },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 3000,
+      });
+      suggestions = completion.choices[0].message.content;
+    }
+
+    const parsed = typeof suggestions === 'string' ? JSON.parse(suggestions) : suggestions;
+
+    // Validate and normalize the response
+    return {
+      has_updates: parsed.has_updates || false,
+      user_guide_updates: Array.isArray(parsed.user_guide_updates) ? parsed.user_guide_updates : [],
+      technical_updates: Array.isArray(parsed.technical_updates) ? parsed.technical_updates : [],
+      changes_detected: Array.isArray(parsed.changes_detected) ? parsed.changes_detected : [],
+      changelog_entry: parsed.changelog_entry || null,
+    };
+  } catch (error) {
+    console.error('Wiki suggestion error:', error);
+    throw new Error('Failed to generate wiki suggestions');
+  }
+};
+
+/**
+ * Get structured wiki template
+ * @param {string} projectName - Project name
+ * @returns {string} Markdown template for new wikis
+ */
+export const getWikiTemplate = (projectName) => {
+  return `# ${projectName}
+
+## Overview
+Brief description of the project, its purpose, and main features.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+List any required tools, dependencies, or knowledge needed.
+
+### Installation
+Step-by-step installation instructions.
+
+### Quick Start
+How to get up and running quickly.
+
+---
+
+## 📖 User Guide
+
+### Core Features
+Describe main features and how to use them.
+
+### Common Tasks
+Step-by-step guides for common user tasks.
+
+### Configuration
+How to configure the application.
+
+---
+
+## 🔧 Technical Documentation
+
+### Architecture
+High-level architecture overview and design decisions.
+
+### Technology Stack
+List of technologies used and why they were chosen.
+
+### API Documentation
+Key APIs and their usage.
+
+### Implementation Details
+Important technical implementation notes.
+
+---
+
+## 📝 Changelog
+
+Updates and changes to the project will be tracked here.
+
+`;
+};

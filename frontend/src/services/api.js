@@ -160,6 +160,29 @@ export const wikiAPI = {
       handleError(error);
     }
   },
+
+  getSuggestions: async (projectId, meetingId) => {
+    try {
+      const response = await api.post(`/api/wiki/${projectId}/suggestions`, {
+        meetingId,
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  applySuggestions: async (projectId, meetingId, suggestions) => {
+    try {
+      const response = await api.post(`/api/wiki/${projectId}/apply-suggestions`, {
+        meetingId,
+        suggestions,
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
 };
 
 // Search API
