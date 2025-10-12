@@ -39,13 +39,15 @@ Your goal is to preserve what was discussed in detail, not just extract action i
 
 Analyze the following meeting transcript and provide a structured summary in JSON format with these fields:
 
-1. "overview": A 2-3 sentence high-level summary of what the meeting covered
-2. "discussion_topics": An array of main topics/themes discussed (e.g., ["Feature planning", "Technical architecture", "User feedback"])
-3. "detailed_discussion": An array of strings, each being 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning. Each entry should be a complete paragraph string, not an object.
-4. "key_decisions": An array of concrete decisions made during the meeting (include empty array if none)
-5. "action_items": An array of objects with "task" and "owner" fields for specific follow-up actions (include empty array if none)
-6. "technical_details": An array of technical specifics mentioned - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY (include empty array if none)
-7. "context": A paragraph providing background context - why this meeting happened, what led to these discussions, relevant prior decisions or history mentioned
+1. "overview": A 2-3 sentence high-level summary of what the meeting covered (string)
+2. "discussion_topics": An array of topic strings (e.g., ["Feature planning", "Technical architecture", "User feedback"]). Each item should be a simple string, not an object.
+3. "detailed_discussion": An array of paragraph strings, each being 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning. Each entry must be a complete paragraph string, NOT an object.
+4. "key_decisions": An array of decision strings describing concrete decisions made during the meeting (include empty array if none). Each item should be a simple string, not an object.
+5. "action_items": An array of objects with "task" and "owner" fields for specific follow-up actions (include empty array if none). This is the ONLY field that should contain objects.
+6. "technical_details": An array of technical detail strings - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY in each string. Each item should be a simple string, not an object.
+7. "context": A paragraph string providing background context - why this meeting happened, what led to these discussions, relevant prior decisions or history mentioned
+
+IMPORTANT: All fields should contain simple strings in their arrays, EXCEPT action_items which contains objects with task/owner. Do not use objects for discussion_topics, detailed_discussion, key_decisions, or technical_details.
 
 IMPORTANT: Focus on capturing WHAT WAS SAID and the reasoning/thought process, not on identifying gaps or problems. This is for future reference to remember what was discussed.
 
