@@ -18,6 +18,7 @@ const useStore = create((set, get) => ({
   // UI
   activeTab: 'recording',
   searchQuery: '',
+  isChatSidebarOpen: false,
 
   // Status
   status: 'idle', // idle, processing, error, success
@@ -98,6 +99,10 @@ const useStore = create((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  toggleChatSidebar: () => set((state) => ({ isChatSidebarOpen: !state.isChatSidebarOpen })),
+
+  setChatSidebarOpen: (isOpen) => set({ isChatSidebarOpen: isOpen }),
 
   // Actions - Status
   setStatus: (status, errorMessage = null) => set({

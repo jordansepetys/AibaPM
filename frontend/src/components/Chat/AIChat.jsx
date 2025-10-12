@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../../stores/useStore';
 import { chatAPI } from '../../services/api';
 
-const AIChat = () => {
+const AIChat = ({ isSidebar = false }) => {
   const { projects, selectedProject, selectProject, setStatus } = useStore();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -126,15 +126,15 @@ const AIChat = () => {
   return (
     <div style={{
       background: '#fff',
-      borderRadius: '8px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      borderRadius: isSidebar ? '0' : '8px',
+      boxShadow: isSidebar ? 'none' : '0 2px 8px rgba(0,0,0,0.1)',
       overflow: 'hidden',
-      height: 'calc(100vh - 200px)',
+      height: isSidebar ? '100%' : 'calc(100vh - 200px)',
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Header */}
-      <div style={{
+      {/* Header - Only show in standalone mode */}
+      {!isSidebar && (<div style={{
         padding: '15px 20px',
         borderBottom: '1px solid #dee2e6',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -191,7 +191,58 @@ const AIChat = () => {
             ))}
           </select>
         </div>
-      </div>
+      </div>)}
+
+      {/* Sidebar Header - Only show in sidebar mode */}
+      {isSidebar && (
+        <div style={{
+          padding: '15px 20px',
+          borderBottom: '1px solid #dee2e6',
+          background: '#f8f9fa',
+        }}>
+          {/* Project Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: '#495057' }}>
+              Project:
+            </label>
+            <select
+              value={currentProjectId || ''}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                fontSize: '13px',
+                background: '#fff',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                color: '#495057',
+              }}
+            >
+              <option value="">General Chat</option>
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleClearHistory}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                background: '#fff',
+                color: '#6c757d',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+              title="Clear chat history"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div style={{
