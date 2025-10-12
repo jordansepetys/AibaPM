@@ -1,0 +1,200 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Error handler
+const handleError = (error) => {
+  if (error.response) {
+    // Server responded with error
+    throw new Error(error.response.data.error || error.response.data.message || 'Server error');
+  } else if (error.request) {
+    // Request made but no response
+    throw new Error('No response from server. Please check if the backend is running.');
+  } else {
+    // Error setting up request
+    throw new Error(error.message || 'Request failed');
+  }
+};
+
+// Projects API
+export const projectsAPI = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/api/projects');
+      return response.data.projects || [];
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/api/projects/${id}`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  create: async (name) => {
+    try {
+      const response = await api.post('/api/projects', { name });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  update: async (id, name) => {
+    try {
+      const response = await api.put(`/api/projects/${id}`, { name });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/api/projects/${id}`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
+// Meetings API
+export const meetingsAPI = {
+  getAll: async (projectId = null) => {
+    try {
+      const params = projectId ? { projectId } : {};
+      const response = await api.get('/api/meetings', { params });
+      return response.data.meetings || [];
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/api/meetings/${id}`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  create: async (audioBlob, projectId, title) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('projectId', projectId);
+      formData.append('title', title);
+      formData.append('date', new Date().toISOString());
+
+      const response = await api.post('/api/meetings', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.meeting || response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  reprocess: async (id) => {
+    try {
+      const response = await api.post(`/api/meetings/${id}/reprocess`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/api/meetings/${id}`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
+// Wiki API
+export const wikiAPI = {
+  get: async (projectId) => {
+    try {
+      const response = await api.get(`/api/wiki/${projectId}`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  update: async (projectId, content) => {
+    try {
+      const response = await api.put(`/api/wiki/${projectId}`, { content });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  autoUpdate: async (projectId, meetingId) => {
+    try {
+      const response = await api.post(`/api/wiki/${projectId}/auto-update`, {
+        meetingId,
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
+// Search API
+export const searchAPI = {
+  search: async (query, projectId = null) => {
+    try {
+      const params = { q: query };
+      if (projectId) {
+        params.project = projectId;
+      }
+      const response = await api.get('/api/search', { params });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  rebuild: async () => {
+    try {
+      const response = await api.post('/api/search/rebuild');
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
+// Health check
+export const healthCheck = async () => {
+  try {
+    const response = await api.get('/api/health');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export default api;

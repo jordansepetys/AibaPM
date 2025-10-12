@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(node:*)",
+      "Bash(curl http://localhost:3001/api/health)",
+      "Bash(npm run dev:*)",
+      "Bash(ping:*)",
+      "Bash(dir:*)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(sqlite3:*)",
+      "Bash(cat:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd.exe //c \"taskkill /PID 30068 /F\")",
+      "Bash(chmod:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
