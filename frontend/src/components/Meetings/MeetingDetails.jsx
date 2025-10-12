@@ -203,6 +203,72 @@ const MeetingDetails = () => {
                   </div>
                 )}
 
+                {/* Context */}
+                {summary.context && (
+                  <div style={{ marginBottom: '30px', background: '#f8f9fa', padding: '15px', borderRadius: '6px', borderLeft: '4px solid #007bff' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#007bff' }}>
+                      🔗 Context & Background
+                    </h3>
+                    <p style={{ lineHeight: '1.6', color: '#495057', margin: 0 }}>
+                      {summary.context}
+                    </p>
+                  </div>
+                )}
+
+                {/* Discussion Topics */}
+                {summary.discussion_topics && summary.discussion_topics.length > 0 && (
+                  <div style={{ marginBottom: '30px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
+                      💬 Discussion Topics
+                    </h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {summary.discussion_topics.map((topic, idx) => (
+                        <span key={idx} style={{
+                          padding: '6px 12px',
+                          background: '#e7f3ff',
+                          color: '#0056b3',
+                          borderRadius: '16px',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}>
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Detailed Discussion */}
+                {summary.detailed_discussion && summary.detailed_discussion.length > 0 && (
+                  <div style={{ marginBottom: '30px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
+                      📝 Detailed Discussion
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                      {summary.detailed_discussion.map((point, idx) => (
+                        <div key={idx} style={{
+                          padding: '15px',
+                          background: '#f8f9fa',
+                          borderRadius: '6px',
+                          borderLeft: '3px solid #28a745'
+                        }}>
+                          <div style={{
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            color: '#28a745',
+                            marginBottom: '8px'
+                          }}>
+                            Point {idx + 1}
+                          </div>
+                          <p style={{ lineHeight: '1.8', color: '#495057', margin: 0 }}>
+                            {point}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Key Decisions */}
                 {summary.key_decisions && summary.key_decisions.length > 0 && (
                   <div style={{ marginBottom: '30px' }}>
@@ -213,38 +279,6 @@ const MeetingDetails = () => {
                       {summary.key_decisions.map((decision, idx) => (
                         <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
                           {decision}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Risks */}
-                {summary.risks && summary.risks.length > 0 && (
-                  <div style={{ marginBottom: '30px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
-                      ⚠️ Risks
-                    </h3>
-                    <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
-                      {summary.risks.map((risk, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
-                          {risk}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Open Questions */}
-                {summary.open_questions && summary.open_questions.length > 0 && (
-                  <div style={{ marginBottom: '30px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
-                      ❓ Open Questions
-                    </h3>
-                    <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
-                      {summary.open_questions.map((question, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
-                          {question}
                         </li>
                       ))}
                     </ul>

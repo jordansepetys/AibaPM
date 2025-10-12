@@ -33,16 +33,21 @@ function getOpenAIClient() {
 }
 
 // Prompt template for meeting analysis
-const ANALYSIS_PROMPT = `You are an AI assistant that analyzes meeting transcripts and extracts key information.
+const ANALYSIS_PROMPT = `You are an AI assistant that captures detailed meeting discussions for long-term memory and reference.
+
+Your goal is to preserve what was discussed in detail, not just extract action items. This is a conversation journal.
 
 Analyze the following meeting transcript and provide a structured summary in JSON format with these fields:
 
-1. "overview": A brief 2-3 sentence summary of the meeting
-2. "key_decisions": An array of important decisions made (include "N/A" if none)
-3. "action_items": An array of objects with "task" and "owner" fields (include empty array if none)
-4. "risks": An array of potential risks or concerns mentioned (include empty array if none)
-5. "open_questions": An array of unresolved questions (include empty array if none)
-6. "technical_details": An array of important technical details or specifications (include empty array if none)
+1. "overview": A 2-3 sentence high-level summary of what the meeting covered
+2. "discussion_topics": An array of main topics/themes discussed (e.g., ["Feature planning", "Technical architecture", "User feedback"])
+3. "detailed_discussion": An array of detailed discussion points. Each should be 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning.
+4. "key_decisions": An array of concrete decisions made during the meeting (include empty array if none)
+5. "action_items": An array of objects with "task" and "owner" fields for specific follow-up actions (include empty array if none)
+6. "technical_details": An array of technical specifics mentioned - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY (include empty array if none)
+7. "context": A paragraph providing background context - why this meeting happened, what led to these discussions, relevant prior decisions or history mentioned
+
+IMPORTANT: Focus on capturing WHAT WAS SAID and the reasoning/thought process, not on identifying gaps or problems. This is for future reference to remember what was discussed.
 
 Transcript:
 ---
@@ -79,11 +84,12 @@ export const analyzeMeeting = async (transcript, backend = AI_BACKEND) => {
     // Ensure all required fields exist
     return {
       overview: parsed.overview || 'No overview available',
+      discussion_topics: Array.isArray(parsed.discussion_topics) ? parsed.discussion_topics : [],
+      detailed_discussion: Array.isArray(parsed.detailed_discussion) ? parsed.detailed_discussion : [],
       key_decisions: Array.isArray(parsed.key_decisions) ? parsed.key_decisions : [],
       action_items: Array.isArray(parsed.action_items) ? parsed.action_items : [],
-      risks: Array.isArray(parsed.risks) ? parsed.risks : [],
-      open_questions: Array.isArray(parsed.open_questions) ? parsed.open_questions : [],
       technical_details: Array.isArray(parsed.technical_details) ? parsed.technical_details : [],
+      context: parsed.context || '',
     };
   } catch (error) {
     console.error('Analysis error:', error);
@@ -106,7 +112,7 @@ const analyzeWithClaude = async (transcript) => {
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',
@@ -139,7 +145,7 @@ const analyzeWithGPT = async (transcript) => {
     messages: [
       {
         role: 'system',
-        content: 'You are a meeting analysis assistant that returns structured JSON responses.',
+        content: 'You are a meeting documentation assistant that captures detailed discussions for long-term reference. Return structured JSON responses with thorough detail.',
       },
       {
         role: 'user',
@@ -147,7 +153,7 @@ const analyzeWithGPT = async (transcript) => {
       },
     ],
     response_format: { type: 'json_object' },
-    max_tokens: 2048,
+    max_tokens: 4096,
   });
 
   const response = completion.choices[0].message.content;

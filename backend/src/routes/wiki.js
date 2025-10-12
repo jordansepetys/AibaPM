@@ -298,6 +298,25 @@ function generateMeetingSection(summary, meetingId) {
     markdown += `### Overview\n${summary.overview}\n\n`;
   }
 
+  if (summary.context) {
+    markdown += `### Context\n${summary.context}\n\n`;
+  }
+
+  if (summary.discussion_topics && summary.discussion_topics.length > 0) {
+    markdown += `### Discussion Topics\n`;
+    summary.discussion_topics.forEach(topic => {
+      markdown += `- ${topic}\n`;
+    });
+    markdown += `\n`;
+  }
+
+  if (summary.detailed_discussion && summary.detailed_discussion.length > 0) {
+    markdown += `### Detailed Discussion\n`;
+    summary.detailed_discussion.forEach((point, idx) => {
+      markdown += `${idx + 1}. ${point}\n\n`;
+    });
+  }
+
   if (summary.key_decisions && summary.key_decisions.length > 0) {
     markdown += `### Key Decisions\n`;
     summary.key_decisions.forEach(decision => {
@@ -320,14 +339,6 @@ function generateMeetingSection(summary, meetingId) {
     markdown += `### Technical Details\n`;
     summary.technical_details.forEach(detail => {
       markdown += `- ${detail}\n`;
-    });
-    markdown += `\n`;
-  }
-
-  if (summary.open_questions && summary.open_questions.length > 0) {
-    markdown += `### Open Questions\n`;
-    summary.open_questions.forEach(question => {
-      markdown += `- ${question}\n`;
     });
     markdown += `\n`;
   }
