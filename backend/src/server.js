@@ -23,6 +23,7 @@ import projectsRouter from './routes/projects.js';
 import meetingsRouter from './routes/meetings.js';
 import wikiRouter from './routes/wiki.js';
 import searchRouter from './routes/search.js';
+import chatRouter from './routes/chat.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -64,6 +65,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/wiki', wikiRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/chat', chatRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

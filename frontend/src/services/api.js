@@ -210,6 +210,41 @@ export const searchAPI = {
   },
 };
 
+// Chat API
+export const chatAPI = {
+  sendMessage: async (message, projectId = null) => {
+    try {
+      const response = await api.post('/api/chat', {
+        message,
+        projectId,
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  getHistory: async (projectId = null) => {
+    try {
+      const params = projectId ? { projectId } : {};
+      const response = await api.get('/api/chat', { params });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  clearHistory: async (projectId = null) => {
+    try {
+      const params = projectId ? { projectId } : {};
+      const response = await api.delete('/api/chat', { params });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
 // Health check
 export const healthCheck = async () => {
   try {

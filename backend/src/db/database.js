@@ -66,6 +66,19 @@ function initializeDatabase() {
     )
   `);
 
+  // Chat messages table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      context_snapshot TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('Database initialized successfully');
 }
 
@@ -155,6 +168,29 @@ export const searchMeetings = db.prepare(`
 
 export const clearSearchIndexForMeeting = db.prepare(`
   DELETE FROM search_index WHERE meeting_id = ?
+`);
+
+// Chat messages
+export const createChatMessage = db.prepare(`
+  INSERT INTO chat_messages (project_id, role, content, context_snapshot)
+  VALUES (?, ?, ?, ?)
+`);
+
+export const getChatMessages = db.prepare(`
+  SELECT * FROM chat_messages
+  WHERE project_id IS ? OR project_id = ?
+  ORDER BY created_at ASC
+`);
+
+export const getRecentChatMessages = db.prepare(`
+  SELECT * FROM chat_messages
+  WHERE project_id IS ? OR project_id = ?
+  ORDER BY created_at DESC
+  LIMIT ?
+`);
+
+export const clearChatHistory = db.prepare(`
+  DELETE FROM chat_messages WHERE project_id IS ? OR project_id = ?
 `);
 
 export default db;

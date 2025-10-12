@@ -8,6 +8,7 @@ import MeetingDetails from './components/Meetings/MeetingDetails';
 import WikiEditor from './components/Wiki/WikiEditor';
 import GlobalSearch from './components/Search/GlobalSearch';
 import ProjectManager from './components/Projects/ProjectManager';
+import AIChat from './components/Chat/AIChat';
 import './App.css';
 
 function App() {
@@ -152,6 +153,22 @@ function App() {
           >
             📁 Projects ({projects.length})
           </button>
+          <button
+            onClick={() => setAppTab('chat')}
+            style={{
+              padding: '12px 24px',
+              fontSize: '15px',
+              fontWeight: appTab === 'chat' ? 'bold' : 'normal',
+              background: appTab === 'chat' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#fff',
+              color: appTab === 'chat' ? '#fff' : '#495057',
+              border: appTab === 'chat' ? 'none' : '1px solid #dee2e6',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            🤖 AI Chat
+          </button>
         </div>
 
         {/* Recording Tab */}
@@ -277,6 +294,11 @@ function App() {
         {/* Projects Tab */}
         {appTab === 'projects' && (
           <ProjectManager />
+        )}
+
+        {/* Chat Tab */}
+        {appTab === 'chat' && (
+          <AIChat />
         )}
       </div>
     </div>
