@@ -262,12 +262,14 @@ const WikiEditor = () => {
             👁️ Preview
           </div>
           <div
+            className="wiki-preview"
             style={{
               flex: 1,
               padding: '20px',
               overflowY: 'auto',
               fontSize: '14px',
-              lineHeight: '1.8'
+              lineHeight: '1.8',
+              textAlign: 'left'
             }}
             dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
           />
@@ -298,6 +300,168 @@ const WikiEditor = () => {
           background-color: #ffeb3b;
           padding: 2px 4px;
           border-radius: 2px;
+        }
+
+        /* Markdown Preview Styles */
+        .wiki-preview {
+          text-align: left;
+        }
+
+        .wiki-preview h1 {
+          font-size: 2em;
+          font-weight: bold;
+          margin: 0.67em 0;
+          padding-bottom: 0.3em;
+          border-bottom: 1px solid #dee2e6;
+        }
+
+        .wiki-preview h2 {
+          font-size: 1.5em;
+          font-weight: bold;
+          margin: 0.75em 0 0.5em 0;
+          padding-bottom: 0.3em;
+          border-bottom: 1px solid #eaecef;
+        }
+
+        .wiki-preview h3 {
+          font-size: 1.25em;
+          font-weight: bold;
+          margin: 0.75em 0 0.5em 0;
+        }
+
+        .wiki-preview h4 {
+          font-size: 1em;
+          font-weight: bold;
+          margin: 0.75em 0 0.5em 0;
+        }
+
+        .wiki-preview h5 {
+          font-size: 0.875em;
+          font-weight: bold;
+          margin: 0.75em 0 0.5em 0;
+        }
+
+        .wiki-preview h6 {
+          font-size: 0.85em;
+          font-weight: bold;
+          color: #6c757d;
+          margin: 0.75em 0 0.5em 0;
+        }
+
+        .wiki-preview p {
+          margin: 0 0 1em 0;
+        }
+
+        .wiki-preview ul,
+        .wiki-preview ol {
+          margin: 0 0 1em 0;
+          padding-left: 2em;
+        }
+
+        .wiki-preview li {
+          margin: 0.25em 0;
+        }
+
+        .wiki-preview ul ul,
+        .wiki-preview ul ol,
+        .wiki-preview ol ul,
+        .wiki-preview ol ol {
+          margin: 0.25em 0;
+        }
+
+        .wiki-preview code {
+          background: #f6f8fa;
+          padding: 0.2em 0.4em;
+          border-radius: 3px;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 0.9em;
+          color: #e83e8c;
+        }
+
+        .wiki-preview pre {
+          background: #f6f8fa;
+          padding: 16px;
+          border-radius: 6px;
+          overflow-x: auto;
+          margin: 0 0 1em 0;
+          border: 1px solid #dee2e6;
+        }
+
+        .wiki-preview pre code {
+          background: none;
+          padding: 0;
+          color: inherit;
+        }
+
+        .wiki-preview blockquote {
+          margin: 0 0 1em 0;
+          padding: 0 1em;
+          color: #6c757d;
+          border-left: 4px solid #dee2e6;
+        }
+
+        .wiki-preview blockquote p {
+          margin: 0.5em 0;
+        }
+
+        .wiki-preview a {
+          color: #007bff;
+          text-decoration: none;
+        }
+
+        .wiki-preview a:hover {
+          text-decoration: underline;
+        }
+
+        .wiki-preview hr {
+          border: none;
+          border-top: 2px solid #dee2e6;
+          margin: 2em 0;
+        }
+
+        .wiki-preview table {
+          border-collapse: collapse;
+          margin: 0 0 1em 0;
+          width: 100%;
+        }
+
+        .wiki-preview table th,
+        .wiki-preview table td {
+          border: 1px solid #dee2e6;
+          padding: 8px 12px;
+          text-align: left;
+        }
+
+        .wiki-preview table th {
+          background: #f8f9fa;
+          font-weight: bold;
+        }
+
+        .wiki-preview table tr:nth-child(even) {
+          background: #f8f9fa;
+        }
+
+        .wiki-preview img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 4px;
+          margin: 1em 0;
+        }
+
+        .wiki-preview strong {
+          font-weight: bold;
+        }
+
+        .wiki-preview em {
+          font-style: italic;
+        }
+
+        .wiki-preview del {
+          text-decoration: line-through;
+        }
+
+        .wiki-preview input[type="checkbox"] {
+          margin-right: 0.5em;
         }
       `}</style>
     </div>
