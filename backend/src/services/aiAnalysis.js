@@ -41,7 +41,7 @@ Analyze the following meeting transcript and provide a structured summary in JSO
 
 1. "overview": A 2-3 sentence high-level summary of what the meeting covered
 2. "discussion_topics": An array of main topics/themes discussed (e.g., ["Feature planning", "Technical architecture", "User feedback"])
-3. "detailed_discussion": An array of detailed discussion points. Each should be 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning.
+3. "detailed_discussion": An array of strings, each being 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning. Each entry should be a complete paragraph string, not an object.
 4. "key_decisions": An array of concrete decisions made during the meeting (include empty array if none)
 5. "action_items": An array of objects with "task" and "owner" fields for specific follow-up actions (include empty array if none)
 6. "technical_details": An array of technical specifics mentioned - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY (include empty array if none)

@@ -245,26 +245,33 @@ const MeetingDetails = () => {
                       📝 Detailed Discussion
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                      {summary.detailed_discussion.map((point, idx) => (
-                        <div key={idx} style={{
-                          padding: '15px',
-                          background: '#f8f9fa',
-                          borderRadius: '6px',
-                          borderLeft: '3px solid #28a745'
-                        }}>
-                          <div style={{
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            color: '#28a745',
-                            marginBottom: '8px'
+                      {summary.detailed_discussion.map((point, idx) => {
+                        // Handle both string and object formats
+                        const isObject = typeof point === 'object' && point !== null;
+                        const topic = isObject ? point.topic : null;
+                        const details = isObject ? point.details : point;
+
+                        return (
+                          <div key={idx} style={{
+                            padding: '15px',
+                            background: '#f8f9fa',
+                            borderRadius: '6px',
+                            borderLeft: '3px solid #28a745'
                           }}>
-                            Point {idx + 1}
+                            <div style={{
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              color: '#28a745',
+                              marginBottom: '8px'
+                            }}>
+                              {topic || `Point ${idx + 1}`}
+                            </div>
+                            <p style={{ lineHeight: '1.8', color: '#495057', margin: 0 }}>
+                              {details}
+                            </p>
                           </div>
-                          <p style={{ lineHeight: '1.8', color: '#495057', margin: 0 }}>
-                            {point}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
