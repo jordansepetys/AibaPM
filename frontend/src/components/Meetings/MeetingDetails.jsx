@@ -222,18 +222,24 @@ const MeetingDetails = () => {
                       💬 Discussion Topics
                     </h3>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      {summary.discussion_topics.map((topic, idx) => (
-                        <span key={idx} style={{
-                          padding: '6px 12px',
-                          background: '#e7f3ff',
-                          color: '#0056b3',
-                          borderRadius: '16px',
-                          fontSize: '14px',
-                          fontWeight: '500'
-                        }}>
-                          {topic}
-                        </span>
-                      ))}
+                      {summary.discussion_topics.map((topic, idx) => {
+                        // Handle both string and object formats
+                        const isObject = typeof topic === 'object' && topic !== null;
+                        const topicText = isObject ? (topic.topic || topic.name || JSON.stringify(topic)) : topic;
+
+                        return (
+                          <span key={idx} style={{
+                            padding: '6px 12px',
+                            background: '#e7f3ff',
+                            color: '#0056b3',
+                            borderRadius: '16px',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                          }}>
+                            {topicText}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -283,11 +289,17 @@ const MeetingDetails = () => {
                       🎯 Key Decisions
                     </h3>
                     <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
-                      {summary.key_decisions.map((decision, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
-                          {decision}
-                        </li>
-                      ))}
+                      {summary.key_decisions.map((decision, idx) => {
+                        // Handle both string and object formats
+                        const isObject = typeof decision === 'object' && decision !== null;
+                        const decisionText = isObject ? (decision.decision || decision.text || JSON.stringify(decision)) : decision;
+
+                        return (
+                          <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
+                            {decisionText}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -299,11 +311,18 @@ const MeetingDetails = () => {
                       🔧 Technical Details
                     </h3>
                     <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
-                      {summary.technical_details.map((detail, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
-                          {detail}
-                        </li>
-                      ))}
+                      {summary.technical_details.map((detail, idx) => {
+                        // Handle both string and object formats
+                        const isObject = typeof detail === 'object' && detail !== null;
+                        const detailText = isObject ? (detail.detail || detail.content || JSON.stringify(detail)) : detail;
+                        const reason = isObject && detail.reason ? ` (${detail.reason})` : '';
+
+                        return (
+                          <li key={idx} style={{ marginBottom: '8px', color: '#495057' }}>
+                            {detailText}{reason}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
