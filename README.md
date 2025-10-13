@@ -4,7 +4,7 @@
 
 Never forget what was discussed in your meetings again. Aiba PM automatically transcribes, analyzes, and organizes your meeting content with AI, then builds a searchable knowledge base for your projects.
 
-![Main Dashboard](docs/screenshots/dashboard.png)
+![Chat Screen](./Screenshots/Chat.png)
 
 ## 🌟 Features
 
@@ -32,7 +32,7 @@ Never forget what was discussed in your meetings again. Aiba PM automatically tr
 - **🎯 Custom Scrollbars** - Purple gradient scrollbars that match the theme
 - **🌓 Clean Interface** - No clutter, everything has a purpose
 
-![Recording Interface](docs/screenshots/recording.png)
+![MeetingScreen](./Screenshots/MeetingScreen.png)
 
 ## 🚀 Quick Start
 
@@ -108,7 +108,6 @@ Navigate to: http://localhost:5173
 
 🎉 You're ready to go!
 
-![Meeting Summary](docs/screenshots/meeting-summary.png)
 
 ### Project Structure
 
@@ -200,7 +199,7 @@ The AI mentor knows your entire project context:
 
 The AI has access to your project's wiki and last 5 meetings!
 
-![AI Chat Mentor](docs/screenshots/ai-chat.png)
+![Chat](./Screenshots/Chat.png)
 
 ### Managing Your Wiki
 
@@ -212,7 +211,7 @@ The AI has access to your project's wiki and last 5 meetings!
 
 **Pro tip:** After a meeting, go to the meeting summary and click "Get Wiki Suggestions" - AI will suggest specific updates based on what was discussed!
 
-![Wiki Editor](docs/screenshots/wiki-editor.png)
+![Wiki Updates](./Screenshots/WikiUpdate.png)
 
 ## ⚙️ Configuration
 
@@ -407,7 +406,7 @@ TL;DR: Use it however you want, commercially or personally. Attribution apprecia
 
 If Aiba PM saves you time and helps your projects, consider:
 
-**☕ [Buy me a coffee](https://buymeacoffee.com/yourusername)**
+**☕ [Buy me a coffee](https://buymeacoffee.com/jsepetys)**
 
 Every coffee helps me spend more time building features instead of working my day job! 😄
 
@@ -423,10 +422,9 @@ Built with:
 
 - **GitHub Issues** - For bugs and feature requests
 - **Discussions** - For questions and ideas
-- **Twitter** - [@yourusername](https://twitter.com/yourusername)
 
 ---
 
-**Made with ❤️ by [Your Name]**
+**Made with ❤️ by Jordan Sepetys**
 
 *"Never forget what was discussed."*
