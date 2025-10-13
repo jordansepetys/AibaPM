@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { marked } from 'marked';
 import useStore from '../../stores/useStore';
 import { chatAPI } from '../../services/api';
 
@@ -8,8 +9,11 @@ const AIChat = ({ isSidebar = false }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceMediaRecorder, setVoiceMediaRecorder] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const voiceChunksRef = useRef([]);
 
   // Load chat history when component mounts or project changes
   useEffect(() => {
@@ -115,12 +119,82 @@ const AIChat = ({ isSidebar = false }) => {
     }
   };
 
+  const startVoiceInput = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          voiceChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(voiceChunksRef.current, { type: 'audio/webm' });
+        voiceChunksRef.current = [];
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+
+        // Send to backend for transcription
+        try {
+          setIsLoading(true);
+          const result = await chatAPI.transcribeVoice(audioBlob);
+
+          // Append transcribed text to input (or replace if empty)
+          setInputMessage(prev => {
+            const separator = prev.trim() ? ' ' : '';
+            return prev + separator + result.text;
+          });
+
+          setIsLoading(false);
+          inputRef.current?.focus();
+        } catch (error) {
+          console.error('Transcription error:', error);
+          setStatus('error', 'Voice transcription failed: ' + error.message);
+          setIsLoading(false);
+        }
+      };
+
+      recorder.start();
+      setVoiceMediaRecorder(recorder);
+      setIsRecordingVoice(true);
+    } catch (error) {
+      console.error('Microphone access error:', error);
+      setStatus('error', 'Microphone access denied. Please allow microphone access and try again.');
+    }
+  };
+
+  const stopVoiceInput = () => {
+    if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
+      voiceMediaRecorder.stop();
+      setIsRecordingVoice(false);
+      setVoiceMediaRecorder(null);
+    }
+  };
+
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
     });
+  };
+
+  // Render message content with markdown for AI messages
+  const renderMessageContent = (msg) => {
+    if (msg.role === 'user') {
+      // User messages are plain text
+      return msg.content;
+    } else {
+      // AI messages render as markdown
+      const html = marked(msg.content, {
+        breaks: true, // Convert line breaks to <br>
+        gfm: true, // GitHub Flavored Markdown
+      });
+      return <div className="chat-markdown" dangerouslySetInnerHTML={{ __html: html }} />;
+    }
   };
 
   return (
@@ -313,13 +387,14 @@ const AIChat = ({ isSidebar = false }) => {
                         ? '#fff'
                         : '#495057',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    whiteSpace: 'pre-wrap',
+                    whiteSpace: msg.role === 'user' ? 'pre-wrap' : 'normal',
                     wordBreak: 'break-word',
                     fontSize: '14px',
                     lineHeight: '1.6',
                     border: msg.role === 'user' ? 'none' : '1px solid #dee2e6',
+                    textAlign: 'left',
                   }}>
-                    {msg.content}
+                    {renderMessageContent(msg)}
                   </div>
 
                   {/* Timestamp */}
@@ -381,7 +456,7 @@ const AIChat = ({ isSidebar = false }) => {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message... (Shift+Enter for new line)"
-            disabled={isLoading}
+            disabled={isLoading || isRecordingVoice}
             style={{
               flex: 1,
               padding: '12px',
@@ -397,20 +472,42 @@ const AIChat = ({ isSidebar = false }) => {
             rows={2}
           />
           <button
+            onClick={isRecordingVoice ? stopVoiceInput : startVoiceInput}
+            disabled={isLoading}
+            style={{
+              padding: '12px 20px',
+              fontSize: '20px',
+              background: isRecordingVoice
+                ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+                : '#f8f9fa',
+              color: isRecordingVoice ? 'white' : '#495057',
+              border: isRecordingVoice ? 'none' : '1px solid #ced4da',
+              borderRadius: '8px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+              transition: 'all 0.3s ease',
+              animation: isRecordingVoice ? 'pulse 1.5s infinite' : 'none',
+            }}
+            title={isRecordingVoice ? 'Stop recording' : 'Record voice message'}
+          >
+            {isRecordingVoice ? '⏹️' : '🎤'}
+          </button>
+          <button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || isLoading}
+            disabled={!inputMessage.trim() || isLoading || isRecordingVoice}
             style={{
               padding: '12px 24px',
               fontSize: '14px',
               fontWeight: 'bold',
-              background: !inputMessage.trim() || isLoading
+              background: !inputMessage.trim() || isLoading || isRecordingVoice
                 ? '#6c757d'
                 : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              cursor: !inputMessage.trim() || isLoading ? 'not-allowed' : 'pointer',
-              opacity: !inputMessage.trim() || isLoading ? 0.6 : 1,
+              cursor: !inputMessage.trim() || isLoading || isRecordingVoice ? 'not-allowed' : 'pointer',
+              opacity: !inputMessage.trim() || isLoading || isRecordingVoice ? 0.6 : 1,
               whiteSpace: 'nowrap',
             }}
           >
@@ -423,11 +520,11 @@ const AIChat = ({ isSidebar = false }) => {
           color: '#6c757d',
           textAlign: 'center',
         }}>
-          Press Enter to send • Shift+Enter for new line
+          {isRecordingVoice ? '🎤 Recording... Click stop when done' : 'Press Enter to send • Shift+Enter for new line • Click 🎤 to dictate'}
         </div>
       </div>
 
-      {/* Typing Animation CSS */}
+      {/* Typing Animation CSS + Markdown Styling */}
       <style>{`
         .typing-dot {
           width: 8px;
@@ -446,6 +543,159 @@ const AIChat = ({ isSidebar = false }) => {
             transform: translateY(-10px);
             opacity: 1;
           }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+          }
+          50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+          }
+        }
+
+        /* Markdown styling for chat messages */
+        .chat-markdown {
+          text-align: left;
+        }
+
+        .chat-markdown p {
+          margin: 0 0 0.8em 0;
+          text-align: left;
+        }
+
+        .chat-markdown p:last-child {
+          margin-bottom: 0;
+        }
+
+        .chat-markdown h1,
+        .chat-markdown h2,
+        .chat-markdown h3,
+        .chat-markdown h4,
+        .chat-markdown h5,
+        .chat-markdown h6 {
+          margin: 0.8em 0 0.5em 0;
+          font-weight: 600;
+          text-align: left;
+        }
+
+        .chat-markdown h1 {
+          font-size: 1.4em;
+          border-bottom: 2px solid #dee2e6;
+          padding-bottom: 0.3em;
+        }
+
+        .chat-markdown h2 {
+          font-size: 1.3em;
+          border-bottom: 1px solid #dee2e6;
+          padding-bottom: 0.3em;
+        }
+
+        .chat-markdown h3 {
+          font-size: 1.2em;
+        }
+
+        .chat-markdown h4,
+        .chat-markdown h5,
+        .chat-markdown h6 {
+          font-size: 1.1em;
+        }
+
+        .chat-markdown code {
+          background: #f8f9fa;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          font-size: 0.9em;
+          color: #e83e8c;
+        }
+
+        .chat-markdown pre {
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          padding: 12px;
+          overflow-x: auto;
+          margin: 0.8em 0;
+        }
+
+        .chat-markdown pre code {
+          background: transparent;
+          padding: 0;
+          color: #495057;
+          font-size: 0.85em;
+        }
+
+        .chat-markdown ul,
+        .chat-markdown ol {
+          margin: 0.8em 0;
+          padding-left: 2em;
+          text-align: left;
+        }
+
+        .chat-markdown li {
+          margin: 0.3em 0;
+        }
+
+        .chat-markdown blockquote {
+          margin: 0.8em 0;
+          padding-left: 1em;
+          border-left: 4px solid #667eea;
+          color: #6c757d;
+          font-style: italic;
+        }
+
+        .chat-markdown a {
+          color: #667eea;
+          text-decoration: none;
+        }
+
+        .chat-markdown a:hover {
+          text-decoration: underline;
+        }
+
+        .chat-markdown table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 0.8em 0;
+        }
+
+        .chat-markdown table th,
+        .chat-markdown table td {
+          border: 1px solid #dee2e6;
+          padding: 8px 12px;
+          text-align: left;
+        }
+
+        .chat-markdown table th {
+          background: #f8f9fa;
+          font-weight: 600;
+        }
+
+        .chat-markdown table tr:nth-child(even) {
+          background: #f8f9fa;
+        }
+
+        .chat-markdown hr {
+          border: none;
+          border-top: 1px solid #dee2e6;
+          margin: 1em 0;
+        }
+
+        .chat-markdown strong {
+          font-weight: 600;
+        }
+
+        .chat-markdown em {
+          font-style: italic;
+        }
+
+        .chat-markdown img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 4px;
         }
       `}</style>
     </div>

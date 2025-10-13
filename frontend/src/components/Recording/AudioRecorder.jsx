@@ -170,9 +170,10 @@ const AudioRecorder = () => {
       // Add to store
       addMeeting(meeting);
 
-      // Clear form
+      // Clear form and reset state
       setMeetingTitle('');
       clearAudioChunks();
+      setRecordingDuration(0); // Reset timer
 
       setStatus('success', 'Recording uploaded! Processing in background...');
 
@@ -184,6 +185,7 @@ const AudioRecorder = () => {
       console.error('❌ Error uploading recording:', error);
       setStatus('error', 'Failed to upload recording: ' + error.message);
       clearAudioChunks();
+      setRecordingDuration(0); // Reset timer on error too
     }
   };
 

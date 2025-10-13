@@ -1028,6 +1028,363 @@ Application fully documented and ready for deployment.
 
 ---
 
+## Phase 12: Git Setup & Advanced Features (Session 2)
+
+### 12.1 Git Repository Initialization
+
+**Date:** January 2025
+
+**Tasks:**
+- [x] Setup Git repository with proper .gitignore
+- [x] Secure API keys and sensitive data
+- [x] Exclude storage files from version control
+- [x] Create initial commit
+
+**Checkpoint 12.1:**
+- [x] Git repository initialized ✓
+- [x] API keys not tracked (backend/.env, frontend/.env) ✓
+- [x] Storage content excluded (audio/, transcripts/, summaries/) ✓
+- [x] Database files excluded (*.db, *.sqlite) ✓
+
+**Completed:**
+- Enhanced `.gitignore` with storage directories
+- Added .gitkeep files to preserve directory structure
+- Excluded all .env files (already configured)
+- Excluded database files
+- Excluded large storage files (audio recordings, transcripts, summaries, wikis)
+- Made initial commit: "Initial commit: Aiba Project Manager"
+- Repository ready for GitHub push
+
+**Git Commits:**
+- `d32561b` - Initial commit with all source code (59 files, 12,999 lines)
+
+---
+
+### 12.2 Wiki Update Suggestions Feature
+
+**File:** Multiple files (backend/frontend integration)
+
+**Features:**
+- AI-powered wiki update analysis from meeting discussions
+- Structured suggestions (User Guide vs Technical Documentation)
+- Automatic change detection (e.g., "SignalR → PostMessage")
+- Smart section matching and update logic
+- Changelog entry generation
+- One-click apply to wiki
+
+**Tasks:**
+- [x] Define structured wiki format/template
+- [x] Create AI service for generating suggestions
+- [x] Add backend API endpoints (suggestions, apply)
+- [x] Create frontend component (WikiUpdateSuggestions)
+- [x] Integrate into Meeting Details UI
+- [x] Test complete workflow
+
+**Checkpoint 12.2:**
+- [x] AI analyzes meeting and compares with wiki ✓
+- [x] Suggestions separated by User Guide / Technical ✓
+- [x] Changes detected and highlighted ✓
+- [x] Apply button updates wiki with changes ✓
+- [x] Changelog automatically updated ✓
+
+**Completed:**
+
+**Backend (`backend/src/services/aiAnalysis.js`):**
+- Added `generateWikiUpdateSuggestions()` function
+- Compares current wiki with meeting transcript/summary
+- Returns structured suggestions with:
+  - `user_guide_updates` (how-to, usage, getting started)
+  - `technical_updates` (architecture, APIs, implementation)
+  - `changes_detected` (technology switches with before/after)
+  - `changelog_entry` (auto-generated summary)
+- Each suggestion includes: section, action (add/update/replace), content, reason
+- Added `getWikiTemplate()` for structured wiki format:
+  - Overview
+  - Getting Started (Prerequisites, Installation, Quick Start)
+  - User Guide (Core Features, Common Tasks, Configuration)
+  - Technical Documentation (Architecture, Tech Stack, API, Implementation)
+  - Changelog
+
+**Backend (`backend/src/routes/wiki.js`):**
+- `POST /api/wiki/:projectId/suggestions` - Generate AI suggestions
+- `POST /api/wiki/:projectId/apply-suggestions` - Apply updates to wiki
+- `applyWikiSuggestions()` - Merges suggestions into markdown
+- `applySectionUpdate()` - Smart section matching (add/update/replace)
+- `addChangelogEntry()` - Adds timestamped changelog entries
+
+**Frontend (`frontend/src/components/Meetings/WikiUpdateSuggestions.jsx`):**
+- New component below "AI Mentor Feedback"
+- "Generate Wiki Suggestions" button
+- Visual display of:
+  - Changes Detected (with strikethrough → highlight)
+  - User Guide Updates (with badges)
+  - Technical Updates (with CHANGE badges)
+  - Changelog Entry preview
+- Apply/Regenerate buttons
+- Loading and success states
+- Collapsible interface
+
+**Frontend API (`frontend/src/services/api.js`):**
+- `wikiAPI.getSuggestions(projectId, meetingId)`
+- `wikiAPI.applySuggestions(projectId, meetingId, suggestions)`
+
+**Use Case Example:**
+1. Meeting discusses: "We switched from SignalR to PostMessage"
+2. Click "Generate Wiki Suggestions"
+3. AI detects change: SignalR → PostMessage
+4. Suggests updating "Technology Stack" section
+5. Shows changelog: "Updated communication from SignalR to PostMessage"
+6. Click "Apply to Wiki" - wiki auto-updates!
+
+**Git Commits:**
+- `66fa13f` - Add AI-powered Wiki Update Suggestions feature (6 files, +806 lines)
+
+---
+
+### 12.3 Meeting Summary Redesign
+
+**Focus Shift:** Gap identification → Detailed discussion capture for long-term memory
+
+**Changes Made:**
+
+**Removed Fields (Gap-Focused):**
+- ❌ `risks` - Potential risks/concerns
+- ❌ `open_questions` - Unresolved items
+
+**Added Fields (Memory-Focused):**
+- ✅ `discussion_topics` - Main themes discussed (array of strings)
+- ✅ `detailed_discussion` - 2-4 sentence discussion points capturing conversation flow, reasoning, viewpoints (array of strings)
+- ✅ `context` - Background: why meeting happened, prior decisions, history (string)
+
+**Kept Fields:**
+- ✅ `overview` - High-level summary
+- ✅ `key_decisions` - Concrete decisions
+- ✅ `action_items` - Follow-up tasks
+- ✅ `technical_details` - Implementation specifics with reasoning
+
+**Tasks:**
+- [x] Update AI analysis prompt for detailed capture
+- [x] Increase token limit for longer responses (2048 → 4096)
+- [x] Update backend return structure
+- [x] Update frontend UI components
+- [x] Update wiki generation to include new fields
+
+**Checkpoint 12.3:**
+- [x] AI captures detailed discussion points ✓
+- [x] Context section shows background ✓
+- [x] Discussion topics displayed as tags ✓
+- [x] UI properly renders all new sections ✓
+
+**Completed:**
+
+**Backend Prompt (`backend/src/services/aiAnalysis.js`):**
+- Completely rewritten ANALYSIS_PROMPT
+- Focus: "Conversation journal" not project management
+- Instructions emphasize thorough detail, reasoning, thought process
+- Increased max_tokens: 2048 → 4096 (both Claude and GPT-4o)
+- Updated system prompt for GPT-4o
+- Explicit format specification to prevent object returns
+
+**Frontend UI (`frontend/src/components/Meetings/MeetingDetails.jsx`):**
+- Added "Context & Background" section (blue highlighted box)
+- Added "Discussion Topics" section (pill-style tags)
+- Added "Detailed Discussion" section (numbered cards with green accent)
+- Removed "Risks" section
+- Removed "Open Questions" section
+- Enhanced visual hierarchy with better spacing
+
+**Backend Wiki (`backend/src/routes/wiki.js`):**
+- Updated `generateMeetingSection()` to include:
+  - Context
+  - Discussion Topics
+  - Detailed Discussion (numbered)
+  - Removed risks and open questions
+
+**Example Output:**
+```json
+{
+  "overview": "Discussed authentication redesign and mobile app requirements",
+  "discussion_topics": ["Authentication architecture", "Mobile compatibility"],
+  "detailed_discussion": [
+    "We debated JWT vs session-based auth for 20 minutes. Team was split but mobile requirements tipped the scales. JWT allows offline token validation which is critical for the mobile app's offline mode. We reviewed security implications and decided the tradeoff was worth it.",
+    "Discussed database schema changes needed to support the new auth flow..."
+  ],
+  "context": "This meeting followed last week's architecture review where we decided to split the monolith. The auth system was identified as the first service to extract.",
+  "key_decisions": ["Use JWT for authentication"],
+  "action_items": [{"task": "Update auth endpoints", "owner": "Alex"}],
+  "technical_details": ["JWT tokens expire after 24 hours for security"]
+}
+```
+
+**Git Commits:**
+- `e2a4ef5` - Redesign meeting summaries for detailed discussion capture (3 files, +94/-43 lines)
+
+---
+
+### 12.4 React Error Fixes & Object Handling
+
+**Issue:** AI sometimes returned objects instead of strings in arrays, causing React render errors
+
+**Tasks:**
+- [x] Handle object format in `detailed_discussion`
+- [x] Handle object format in `technical_details`
+- [x] Handle object format in `key_decisions`
+- [x] Handle object format in `discussion_topics`
+- [x] Clarify backend prompt to specify string arrays
+
+**Checkpoint 12.4:**
+- [x] No React errors when rendering summaries ✓
+- [x] Both string and object formats supported ✓
+- [x] Fallback to JSON.stringify for unknown formats ✓
+- [x] Backend prompt clarified ✓
+
+**Completed:**
+
+**Frontend Robustness (`frontend/src/components/Meetings/MeetingDetails.jsx`):**
+
+All summary sections now check if array items are objects or strings:
+
+**Discussion Topics:**
+```javascript
+const topicText = isObject ? (topic.topic || topic.name || JSON.stringify(topic)) : topic;
+```
+
+**Detailed Discussion:**
+```javascript
+const topic = isObject ? point.topic : null;
+const details = isObject ? point.details : point;
+```
+
+**Key Decisions:**
+```javascript
+const decisionText = isObject ? (decision.decision || decision.text || JSON.stringify(decision)) : decision;
+```
+
+**Technical Details:**
+```javascript
+const detailText = isObject ? (detail.detail || detail.content || JSON.stringify(detail)) : detail;
+const reason = isObject && detail.reason ? ` (${detail.reason})` : '';
+```
+
+**Backend Prompt Clarification:**
+- Explicitly stated: "Each item should be a simple string, not an object"
+- Added: "This is the ONLY field that should contain objects" (for action_items)
+- Emphasized: "Do not use objects for discussion_topics, detailed_discussion, key_decisions, or technical_details"
+
+**Git Commits:**
+- `cb41839` - Fix React error: handle object format in detailed_discussion
+- `d4a3555` - Fix: Handle objects in all summary array fields (1 file, +41/-22 lines)
+- `c766334` - Clarify AI prompt: explicitly require strings in arrays
+
+---
+
+### 12.5 Wiki Preview Styling
+
+**Goal:** Professional GitHub-style markdown rendering with left alignment
+
+**Tasks:**
+- [x] Add comprehensive CSS for markdown elements
+- [x] Style headings with proper hierarchy
+- [x] Style code blocks and inline code
+- [x] Style lists, tables, blockquotes
+- [x] Ensure left text alignment
+
+**Checkpoint 12.5:**
+- [x] Headings render with proper sizing and borders ✓
+- [x] Code blocks styled with gray background ✓
+- [x] Lists properly indented ✓
+- [x] Tables with borders and striping ✓
+- [x] All text left-aligned ✓
+
+**Completed:**
+
+**Frontend (`frontend/src/components/Wiki/WikiEditor.jsx`):**
+
+Added comprehensive `.wiki-preview` CSS styling:
+
+**Headings:**
+- h1, h2 with bottom borders (GitHub-style)
+- h3-h6 with proper sizing
+- h6 muted gray color
+
+**Text Formatting:**
+- Paragraphs with spacing
+- Bold, italic, strikethrough
+- Left alignment explicitly set
+
+**Code:**
+- Inline code: gray background, pink text, monospace
+- Code blocks: gray background, border, scrollable
+
+**Lists:**
+- Proper indentation (2em)
+- Nested list support
+- Spacing between items
+
+**Tables:**
+- Bordered cells
+- Header row with gray background
+- Striped rows (alternating background)
+
+**Other Elements:**
+- Blockquotes with left border accent
+- Links with blue color and hover underline
+- Horizontal rules with visual separator
+- Images responsive with rounded corners
+- Checkboxes for task lists
+
+**Result:** Wiki preview now looks like GitHub markdown rendering!
+
+**Git Commits:**
+- `8f8de6c` - Add comprehensive markdown styling to wiki preview (1 file, +165/-1 lines)
+
+---
+
+**Phase 12 Complete! ✅**
+Git repository secured, advanced wiki features implemented, meeting summaries redesigned for detailed capture, UI polished with proper markdown rendering.
+
+---
+
+## 🎉 PROJECT FULLY ENHANCED! 🎉
+
+**All Phases Finished:**
+- ✅ Phase 1: Project Setup & Foundation
+- ✅ Phase 2: Backend - Database & Core Setup
+- ✅ Phase 3: Backend - Core Services
+- ✅ Phase 4: Backend - API Routes
+- ✅ Phase 5: Frontend - State Management
+- ✅ Phase 6: Frontend - Recording Interface
+- ✅ Phase 7: Frontend - Meetings Interface
+- ✅ Phase 8: Frontend - Wiki Interface
+- ✅ Phase 9: Frontend - Search & Advanced Features
+- ✅ Phase 10: Integration & Polish
+- ✅ Phase 11: Deployment Preparation
+- ✅ **Phase 12: Git Setup & Advanced Features** (NEW)
+
+**Updated Statistics:**
+- **Total Components**: 11 React components (+1: WikiUpdateSuggestions)
+- **Backend Routes**: 4 route modules (14 endpoints, +2: wiki suggestions)
+- **Services**: 4 backend services (enhanced)
+- **Database Tables**: 4 tables with full CRUD
+- **Lines of Code**: ~4000+ lines (+1000 in Phase 12)
+- **Features**: 100% of spec implemented + advanced wiki automation
+
+**New Deliverables (Phase 12):**
+- ✅ Git repository with secure .gitignore
+- ✅ AI-powered wiki update suggestions
+- ✅ Detailed meeting discussion capture
+- ✅ Robust error handling for AI responses
+- ✅ Professional wiki markdown preview
+
+**Ready for:**
+- ✅ Local development
+- ✅ Testing and demos
+- ✅ Production deployment (with proper credentials)
+- ✅ Team collaboration
+- ✅ **GitHub repository hosting** (NEW)
+
+---
+
 ## Next Steps with Claude Code
 
 1. **Start with Phase 1**: Get the basic structure in place

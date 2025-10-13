@@ -1,49 +1,114 @@
-# Aiba Project Manager
+# 🎙️ Aiba PM
 
-> AI-Powered Meeting Transcription & Project Management System
+**AI-Powered Meeting Transcription & Project Management**
 
-Aiba PM is a full-stack application that records meetings, automatically transcribes them using AI, generates summaries with key insights, and maintains searchable project wikis.
+Never forget what was discussed in your meetings again. Aiba PM automatically transcribes, analyzes, and organizes your meeting content with AI, then builds a searchable knowledge base for your projects.
 
-## 🚀 Features
+![Main Dashboard](docs/screenshots/dashboard.png)
 
-### Core Features
-- **🎤 Audio Recording**: Browser-based meeting recording with real-time duration tracking
-- **📝 AI Transcription**: Automatic transcription using OpenAI Whisper API
-- **🤖 AI Analysis**: Intelligent meeting summaries with Claude Sonnet 4.5 or GPT-4o
-- **📊 Meeting Management**: Browse, search, and organize all your meetings
-- **📚 Project Wikis**: Live markdown editor with auto-save and preview
-- **🔍 Global Search**: Full-text search across all meetings with relevance ranking
-- **🎓 Mentor Feedback**: Optional AI-powered insights on meeting effectiveness
+## 🌟 Features
 
-### AI-Generated Insights
-Each meeting automatically extracts:
-- **Overview**: High-level summary
-- **Key Decisions**: Important choices made
-- **Action Items**: Tasks with ownership
-- **Risks**: Potential blockers identified
-- **Open Questions**: Unresolved items
-- **Technical Details**: Implementation notes
+### Core Functionality
+- **🎤 Browser Audio Recording** - Record meetings directly in your browser, no external tools needed
+- **📝 AI Transcription** - Powered by OpenAI Whisper for accurate speech-to-text
+- **🤖 Intelligent Analysis** - AI extracts key decisions, action items, discussion topics, and technical details
+- **📊 Structured Summaries** - Every meeting gets a comprehensive, organized summary
+- **🔍 Full-Text Search** - Find anything across all your meetings instantly with relevance ranking
+- **📚 Auto-Updating Wiki** - AI suggests updates to your project documentation based on meeting content
+- **💬 AI Chat Mentor** - Context-aware assistant that knows your entire project history
 
-## 🏗️ Architecture
+### Smart Features
+- **Background Processing** - Transcription and analysis happen automatically after recording
+- **Real-Time Status** - Auto-polling shows processing progress (transcription → analysis → done)
+- **Project Organization** - Separate wikis and meeting histories per project
+- **Markdown Support** - Full GitHub-flavored markdown in wiki and chat
+- **Auto-Save** - Wiki changes save automatically 2 seconds after you stop typing
+- **Search & Highlight** - Search within wiki content with live highlighting
 
-### Tech Stack
+### Modern UI
+- **🎨 Glassmorphism Design** - Unique purple gradient theme with frosted glass effects
+- **✨ Smooth Animations** - Hover effects, transitions, and micro-interactions
+- **📱 Responsive Layout** - Works on desktop and tablet
+- **🎯 Custom Scrollbars** - Purple gradient scrollbars that match the theme
+- **🌓 Clean Interface** - No clutter, everything has a purpose
 
-**Frontend:**
-- React 18 + Vite
-- Zustand (State Management)
-- Axios (HTTP Client)
-- Marked (Markdown Rendering)
-- TailwindCSS (Styling)
+![Recording Interface](docs/screenshots/recording.png)
 
-**Backend:**
-- Node.js + Express
-- SQLite (Metadata Storage)
-- File System (Audio/Transcripts)
-- Multer (File Uploads)
+## 🚀 Quick Start
 
-**AI Services:**
-- OpenAI Whisper (Transcription)
-- OpenAI GPT-4o OR Anthropic Claude Sonnet 4.5 (Analysis)
+### Prerequisites
+
+Before you begin, you'll need:
+- **Node.js 18+** - [Download here](https://nodejs.org/)
+- **API Key** - Either OpenAI OR Anthropic (Claude)
+  - OpenAI: [Get API key](https://platform.openai.com/api-keys)
+  - Anthropic: [Get API key](https://console.anthropic.com/)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/yourusername/aiba-pm.git
+cd aiba-pm
+```
+
+2. **Install dependencies**
+```bash
+# Install root dependencies
+npm install
+
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Install backend dependencies
+cd ../backend
+npm install
+cd ..
+```
+
+3. **Configure API keys**
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `backend/.env` and add your API keys:
+```env
+# Choose your AI backend
+AI_BACKEND=openai
+
+# Add your API key (you only need one)
+OPENAI_API_KEY=sk-proj-your-key-here
+# OR
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+PORT=3001
+```
+
+4. **Start the application**
+
+Open two terminal windows:
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+5. **Open your browser**
+
+Navigate to: http://localhost:5173
+
+🎉 You're ready to go!
+
+![Meeting Summary](docs/screenshots/meeting-summary.png)
 
 ### Project Structure
 
@@ -94,244 +159,274 @@ AibaPM/
 
 ```
 
-## 📦 Installation
+## 📖 How to Use
 
-### Prerequisites
-- Node.js v18+ and npm
-- OpenAI API key (for Whisper + GPT-4o)
-- Anthropic API key (optional, for Claude)
+### First Time Setup
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd AibaPM
-```
+1. **Create Your First Project**
+   - Go to the "Projects" tab
+   - Click "Add Project"
+   - Enter a name (e.g., "My Startup", "Q1 Planning")
 
-### 2. Backend Setup
-```bash
-cd backend
-npm install
+2. **Record Your First Meeting**
+   - Switch to "Record" tab
+   - Select your project from the dropdown
+   - Enter a meeting title
+   - Click "Start Recording" and allow microphone access
+   - Talk about your meeting topics
+   - Click "Stop Recording" when done
 
-# Create .env file (or copy from .env.example)
-cp ../.env.example .env
+3. **Wait for AI Processing** (~1-2 minutes)
+   - 🎙️ Transcribing audio... (30-60 seconds)
+   - 🤖 Generating AI summary... (30-60 seconds)
+   - Processing happens in the background
 
-# Edit .env and add your API keys:
-# OPENAI_API_KEY=your_openai_key_here
-# ANTHROPIC_API_KEY=your_anthropic_key_here
-# AI_BACKEND=openai  # or 'anthropic'
-# PORT=3001
-# AUDIO_RETENTION_DAYS=30
-```
+4. **View Your Meeting**
+   - Go to "Meetings" tab
+   - Click on your meeting
+   - See tabs: Summary | Transcript | Actions
 
-### 3. Frontend Setup
-```bash
-cd ../frontend
-npm install
+### Using the AI Chat Mentor
 
-# Create .env file
-cp .env.example .env
+The AI mentor knows your entire project context:
 
-# Edit .env:
-# VITE_API_URL=http://localhost:3001
-```
+1. Click the panel on the left (or expand it if collapsed)
+2. Select a project from the dropdown
+3. Ask questions like:
+   - "What did we decide about authentication?"
+   - "Summarize our technical approach"
+   - "What are our open action items?"
+   - "Help me understand our architecture decisions"
 
-### 4. Start the Application
+The AI has access to your project's wiki and last 5 meetings!
 
-**Terminal 1 - Backend:**
-```bash
-cd backend
-node src/server.js
-# Server running on http://localhost:3001
-```
+![AI Chat Mentor](docs/screenshots/ai-chat.png)
 
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-# Frontend running on http://localhost:5173
-```
+### Managing Your Wiki
 
-## 🎯 Usage
-
-### 1. Create a Project
-```bash
-curl -X POST http://localhost:3001/api/projects \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Project"}'
-```
-
-### 2. Record a Meeting
-1. Navigate to http://localhost:5173
+1. Go to "Wiki" tab
 2. Select your project from the dropdown
-3. Enter a meeting title
-4. Click "Start Recording"
-5. Speak for at least 10 seconds
-6. Click "Stop Recording"
+3. Edit in markdown (left panel)
+4. See live preview (right panel)
+5. Auto-saves 2 seconds after you stop typing
 
-### 3. View Results
-- **Meetings Tab**: Browse all meetings
-- Click a meeting to view:
-  - **Summary**: AI-generated insights
-  - **Transcript**: Full text with timestamps
-  - **Actions**: Extracted action items
-  - **Mentor Feedback**: Optional AI analysis
+**Pro tip:** After a meeting, go to the meeting summary and click "Get Wiki Suggestions" - AI will suggest specific updates based on what was discussed!
 
-### 4. Use the Wiki
-- **Wiki Tab**: Select a project
-- Write in Markdown (left panel)
-- See live preview (right panel)
-- Auto-saves after 2 seconds
+![Wiki Editor](docs/screenshots/wiki-editor.png)
 
-### 5. Search
-- Use the search bar in the header
-- Type to search across all meetings
-- Filter by project (optional)
-- Click result to open meeting
+## ⚙️ Configuration
 
-## 🔧 Configuration
+### Choosing Your AI Backend
 
-### Environment Variables
+Edit `backend/.env`:
 
-**Backend (.env):**
 ```env
-PORT=3001
-OPENAI_API_KEY=sk-...
+# Use OpenAI (GPT-4o + Whisper)
+AI_BACKEND=openai
+OPENAI_API_KEY=sk-proj-...
+
+# OR use Anthropic (Claude Sonnet 4.5 + OpenAI Whisper)
+AI_BACKEND=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-AI_BACKEND=openai              # or 'anthropic'
-AUDIO_RETENTION_DAYS=30        # Auto-delete old audio files
+OPENAI_API_KEY=sk-proj-...  # Still needed for Whisper transcription
 ```
 
-**Frontend (.env):**
-```env
-VITE_API_URL=http://localhost:3001
-```
+**Note:** Whisper transcription always uses OpenAI, regardless of AI_BACKEND setting.
 
-### AI Backend Selection
-Toggle between OpenAI GPT-4o and Anthropic Claude by setting `AI_BACKEND` in backend `.env`:
-- `openai` - Uses GPT-4o for analysis
-- `anthropic` - Uses Claude Sonnet 4.5 for analysis
+### AI Model Details
 
-Both use OpenAI Whisper for transcription.
+- **Transcription:** OpenAI Whisper (latest)
+- **Analysis (OpenAI):** GPT-4o
+- **Analysis (Anthropic):** Claude Sonnet 4.5 (2025-05-14)
+- **Chat (OpenAI):** GPT-4o
+- **Chat (Anthropic):** Claude Sonnet 4.5
 
-## 📡 API Endpoints
+## 💰 Cost Breakdown
 
-### Projects
-- `GET /api/projects` - List all projects
-- `POST /api/projects` - Create project
-- `GET /api/projects/:id` - Get project
-- `PUT /api/projects/:id` - Update project
-- `DELETE /api/projects/:id` - Delete project
+All costs are pay-as-you-go to OpenAI/Anthropic (you pay them directly):
 
-### Meetings
-- `GET /api/meetings` - List all meetings
-- `GET /api/meetings/:id` - Get meeting details
-- `POST /api/meetings` - Upload & process recording
-- `POST /api/meetings/:id/reprocess` - Re-transcribe & analyze
-- `DELETE /api/meetings/:id` - Delete meeting
+### OpenAI Pricing
+- **Whisper transcription:** $0.006 per minute
+- **GPT-4o analysis:** ~$0.01-0.05 per meeting
+- **GPT-4o chat:** ~$0.001-0.01 per message
 
-### Wiki
-- `GET /api/wiki/:projectId` - Get wiki content
-- `PUT /api/wiki/:projectId` - Update wiki
-- `POST /api/wiki/:projectId/auto-update` - Add meeting to wiki
+### Anthropic Pricing
+- **Claude Sonnet analysis:** ~$0.03-0.10 per meeting
+- **Claude Sonnet chat:** ~$0.002-0.01 per message
 
-### Search
-- `GET /api/search?q=query&project=id` - Search meetings
-- `POST /api/search/rebuild` - Rebuild search index
+### Real-World Examples
+- **30-minute meeting:** ~$0.20 (transcription + analysis)
+- **1-hour meeting:** ~$0.40 (transcription + analysis)
+- **10 chat messages:** ~$0.05-0.10
+- **Monthly (5 hours/week):** ~$8-12
 
-## 🧪 Testing
+**This is extremely cheap compared to manual note-taking or hiring someone to document meetings!**
 
-### Full Workflow Test
-1. ✅ Create a project (via API)
-2. ✅ Record a 30-second meeting
-3. ✅ Wait for processing (transcription + AI analysis)
-4. ✅ View transcript in Meetings tab
-5. ✅ View AI summary with decisions/actions
-6. ✅ Edit project wiki
-7. ✅ Search for keywords
-8. ✅ Delete the test meeting
-
-### Manual Testing Checklist
-- [ ] Recording starts and shows timer
-- [ ] Audio uploads successfully
-- [ ] Transcript appears in ~30 seconds
-- [ ] Summary shows all sections
-- [ ] Wiki saves automatically
-- [ ] Search returns relevant results
-- [ ] Reprocess updates transcript
-- [ ] Delete removes meeting
-
-## 🔒 Security Notes
-
-- ✅ API keys stored in `.env` (never in frontend)
-- ✅ File upload validation (size, type)
-- ✅ Input sanitization on all endpoints
-- ✅ CORS configured for localhost
-- ⚠️ **Production**: Add authentication, rate limiting, HTTPS
-
-## 🐛 Troubleshooting
-
-### Backend won't start
-- Check Node version: `node -v` (need v18+)
-- Verify API keys in `.env`
-- Check port 3001 is available
-
-### Transcription fails
-- Verify OpenAI API key is valid
-- Check audio file size (<25MB)
-- Ensure audio format is supported (webm, wav, mp3, mp4)
-
-### Frontend can't connect
-- Verify backend is running on port 3001
-- Check `VITE_API_URL` in frontend `.env`
-- Check browser console for CORS errors
-
-### Search returns no results
-- Ensure meetings have been transcribed
-- Try rebuilding search index: `POST /api/search/rebuild`
-- Check minimum 2 characters in search query
-
-## 📈 Performance
-
-- **Transcription**: ~30 seconds for 1-minute audio (Whisper API)
-- **AI Analysis**: ~10-15 seconds per meeting (GPT-4o/Claude)
-- **Search**: <100ms for most queries (SQLite FTS)
-- **Audio Storage**: ~1MB per minute of recording
-- **Database**: Scales to 1000+ meetings easily
-
-## 🚀 Deployment (Production)
-
-### Backend
-1. Set production environment variables
-2. Configure production database (PostgreSQL recommended)
-3. Setup file storage (AWS S3, Google Cloud Storage)
-4. Add authentication middleware
-5. Enable HTTPS
-6. Setup monitoring (logs, errors)
+## 🛠️ Tech Stack
 
 ### Frontend
-1. Build production bundle: `npm run build`
-2. Deploy to static hosting (Vercel, Netlify, etc.)
-3. Update `VITE_API_URL` to production backend
-4. Configure CDN for assets
+- **React 19** - Latest React with concurrent features
+- **Vite** - Lightning-fast build tool
+- **Zustand** - Lightweight state management
+- **Marked** - Markdown rendering
+- **Custom CSS** - No component library, fully custom glassmorphism design
 
-## 📝 License
+### Backend
+- **Node.js + Express** - REST API server
+- **SQLite + better-sqlite3** - Zero-config database
+- **Multer** - File uploads (audio files up to 100MB)
+- **OpenAI SDK** - Whisper + GPT-4o
+- **Anthropic SDK** - Claude Sonnet 4.5
+- **Node-cron** - Scheduled cleanup tasks
 
-MIT License - See LICENSE file for details
+### Storage
+- **SQLite database** - Meetings, projects, metadata, chat history
+- **File system** - Audio files, transcripts, summaries, wikis
+- Location: `backend/storage/`
+
+### Architecture
+- **Monorepo** - Frontend + backend in one repo
+- **Background processing** - Async transcription + analysis pipeline
+- **Auto-polling** - Frontend polls for processing completion
+- **7-step pipeline:** Audio → Transcription → AI Analysis → Database → Metadata → Search Index → Wiki Suggestions
+
+## 🚢 Deployment Options
+
+### Option 1: Local Use (Recommended for Personal Use)
+Just follow the installation steps above. Run on your laptop, data stays with you.
+
+### Option 2: Self-Hosted Server
+Deploy to your own Linux server (DigitalOcean, AWS, etc.):
+
+1. Install Node.js on server
+2. Clone repo and install dependencies
+3. Set up `.env` with API keys
+4. Use **PM2** to keep it running:
+```bash
+npm install -g pm2
+pm2 start backend/src/server.js --name aiba-backend
+cd frontend && pm2 start "npm run dev" --name aiba-frontend
+pm2 save
+pm2 startup
+```
+
+5. Set up nginx as reverse proxy for SSL
+
+### Option 3: Docker (Coming Soon)
+A `Dockerfile` and `docker-compose.yml` are planned for 1-command deployment.
+
+## 🔒 Security & Privacy
+
+### Data Storage
+- **All data stored locally** on your machine (or your server if you deploy)
+- **SQLite database** in `backend/aiba.db`
+- **Files** in `backend/storage/`
+- **No external data sharing** - your data never leaves your control
+
+### API Keys
+- Stored in `backend/.env` (never committed to git)
+- Only used to call OpenAI/Anthropic APIs
+- Never sent anywhere else
+
+### Best Practices
+- Keep `.env` in `.gitignore` (already configured)
+- Don't commit the `storage/` directory
+- Don't commit `*.db` files
+- Use environment variables for secrets
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
+This is a personal project, but contributions are welcome!
+
+### How to Contribute
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/cool-feature`)
 3. Make your changes
 4. Test thoroughly
-5. Submit a pull request
+5. Commit (`git commit -m 'Add cool feature'`)
+6. Push (`git push origin feature/cool-feature`)
+7. Open a Pull Request
 
-## 📧 Support
+### Areas for Contribution
+- 🐛 Bug fixes
+- 📝 Documentation improvements
+- 🎨 UI/UX enhancements
+- 🌍 Internationalization (i18n)
+- 🔌 New AI provider integrations (Gemini, Llama, etc.)
+- 📱 Mobile app
+- 🐳 Docker setup
+- 🧪 Test coverage
 
-For issues, questions, or feedback:
-- GitHub Issues: [Create an issue]
-- Documentation: See `project.md` for implementation details
+## 🗺️ Roadmap
+
+### Near Term
+- [ ] Docker setup for easy deployment
+- [ ] User authentication (optional, for multi-user deployments)
+- [ ] Export meetings to PDF/Word
+- [ ] Calendar integration (auto-create meetings from calendar events)
+- [ ] Keyboard shortcuts
+
+### Future Ideas
+- [ ] Real-time collaboration (multiple users in same meeting)
+- [ ] Mobile app (React Native)
+- [ ] Cloud storage options (S3, Google Drive, Dropbox)
+- [ ] More AI providers (Google Gemini, local Llama models)
+- [ ] Video meeting integration (Zoom, Meet, Teams)
+- [ ] Advanced analytics (meeting insights, trends, sentiment)
+- [ ] Custom AI prompts (let users customize the analysis)
+- [ ] API for integrations
+
+## 🐛 Troubleshooting
+
+### "API key not configured" error
+- Check `backend/.env` has the correct API key
+- Make sure you've set `AI_BACKEND` correctly
+- Restart the backend server after changing `.env`
+
+### Recording doesn't work
+- Make sure your browser has microphone permissions
+- Try Chrome/Edge (best support for MediaRecorder API)
+- Check browser console for errors
+
+### Processing stuck on "Transcribing..."
+- Check backend terminal for errors
+- Verify your OpenAI API key is valid and has credits
+- Large audio files (>1 hour) may take 5-10 minutes
+
+### Database errors
+- Delete `backend/aiba.db` to start fresh (WARNING: deletes all data)
+- Run `cd backend && node src/db/database.js` to recreate schema
+
+## 📄 License
+
+**MIT License** - See [LICENSE](LICENSE) file for details.
+
+TL;DR: Use it however you want, commercially or personally. Attribution appreciated but not required.
+
+## 💝 Support
+
+If Aiba PM saves you time and helps your projects, consider:
+
+**☕ [Buy me a coffee](https://buymeacoffee.com/yourusername)**
+
+Every coffee helps me spend more time building features instead of working my day job! 😄
+
+## 🙏 Acknowledgments
+
+Built with:
+- OpenAI Whisper for transcription
+- OpenAI GPT-4o and Anthropic Claude for analysis
+- React and Node.js ecosystems
+- Lots of coffee ☕
+
+## 📧 Contact
+
+- **GitHub Issues** - For bugs and feature requests
+- **Discussions** - For questions and ideas
+- **Twitter** - [@yourusername](https://twitter.com/yourusername)
 
 ---
 
-**Built with ❤️ using React, Node.js, and AI**
+**Made with ❤️ by [Your Name]**
+
+*"Never forget what was discussed."*

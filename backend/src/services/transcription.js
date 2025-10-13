@@ -1,12 +1,19 @@
 import OpenAI from 'openai';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  processLargeAudio,
+  cleanupChunks,
+  rechunkWithSmallerSize
+} from './audioChunker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const TRANSCRIPT_DIR = path.join(__dirname, '../../storage/transcripts');
+const SIZE_THRESHOLD_MB = 24; // Trigger chunking if over 24MB
 
 // Initialize OpenAI client (lazy initialization)
 let openai = null;
@@ -21,53 +28,39 @@ function getOpenAIClient() {
 }
 
 /**
- * Transcribe audio file using OpenAI Whisper
+ * Transcribe a single audio file (must be under 25MB)
  * @param {string} audioPath - Path to audio file
  * @param {string} language - Language code (optional)
  * @returns {Promise<Object>} Transcription result
  */
-export const transcribeAudio = async (audioPath, language = 'en') => {
+const transcribeSingleFile = async (audioPath, language = 'en') => {
   const client = getOpenAIClient();
   if (!client) {
     throw new Error('OpenAI API key not configured');
   }
 
   try {
-    console.log(`Starting transcription for: ${audioPath}`);
+    console.log(`Transcribing: ${audioPath}`);
 
-    // Get full path to audio file
-    // If audioPath is already absolute (starts with C:/ or /), use it as-is
-    // Otherwise, treat it as relative to backend directory
+    // Get full path
     const fullAudioPath = path.isAbsolute(audioPath)
       ? audioPath
       : path.join(__dirname, '../..', audioPath);
 
-    console.log(`Resolved audio path: ${fullAudioPath}`);
-
     // Check file exists
     await fs.access(fullAudioPath);
 
-    // Get file stats for size check
+    // Get file stats
     const stats = await fs.stat(fullAudioPath);
     const fileSizeMB = stats.size / (1024 * 1024);
+    console.log(`File size: ${fileSizeMB.toFixed(2)}MB`);
 
-    console.log(`Audio file size: ${fileSizeMB.toFixed(2)}MB`);
-
-    // Whisper API has a 25MB limit - handle chunking if needed
-    if (fileSizeMB > 25) {
-      console.warn('File exceeds 25MB - chunking would be required in production');
-      // In production, implement audio chunking here
-      throw new Error('Audio file too large for transcription (>25MB). Chunking not yet implemented.');
-    }
-
-    // Create read stream for the file
-    const audioFile = await fs.readFile(fullAudioPath);
-    const blob = new Blob([audioFile]);
-    const file = new File([blob], path.basename(fullAudioPath));
+    // Use read stream
+    const audioStream = fsSync.createReadStream(fullAudioPath);
 
     // Call Whisper API
     const transcription = await client.audio.transcriptions.create({
-      file: file,
+      file: audioStream,
       model: 'whisper-1',
       language: language,
       response_format: 'verbose_json', // Get timestamps
@@ -82,9 +75,283 @@ export const transcribeAudio = async (audioPath, language = 'en') => {
       segments: transcription.segments || [],
     };
   } catch (error) {
+    // Check if it's a 413 error (payload too large)
+    if (error.status === 413 || error.message.includes('413')) {
+      throw new Error('PAYLOAD_TOO_LARGE');
+    }
     console.error('Transcription error:', error);
     throw new Error(`Failed to transcribe audio: ${error.message}`);
   }
+};
+
+/**
+ * Merge transcripts from multiple chunks
+ * @param {Array<Object>} chunkResults - Array of transcription results with chunk info
+ * @returns {Object} Merged transcription result
+ */
+const mergeTranscripts = (chunkResults) => {
+  console.log(`\nMerging ${chunkResults.length} transcripts...`);
+
+  let fullText = '';
+  let allSegments = [];
+  let totalDuration = 0;
+  const language = chunkResults[0]?.transcription.language || 'en';
+
+  for (const { chunk, transcription } of chunkResults) {
+    // Add text
+    fullText += transcription.text + ' ';
+
+    // Adjust segment timestamps based on chunk start time
+    if (transcription.segments && transcription.segments.length > 0) {
+      const adjustedSegments = transcription.segments.map(segment => ({
+        ...segment,
+        start: segment.start + chunk.startTime,
+        end: segment.end + chunk.startTime,
+      }));
+      allSegments.push(...adjustedSegments);
+    }
+
+    // Track total duration
+    totalDuration = Math.max(totalDuration, chunk.endTime);
+  }
+
+  // Clean up text (remove extra spaces)
+  fullText = fullText.trim().replace(/\s+/g, ' ');
+
+  console.log(`Merged transcript: ${fullText.length} characters, ${allSegments.length} segments`);
+
+  return {
+    text: fullText,
+    language,
+    duration: totalDuration,
+    segments: allSegments,
+  };
+};
+
+/**
+ * Transcribe audio chunks with retry logic
+ * @param {Array<Object>} chunks - Array of chunk information
+ * @param {Function} progressCallback - Progress callback (optional)
+ * @returns {Promise<Array<Object>>} Array of transcription results
+ */
+const transcribeChunks = async (chunks, progressCallback = null) => {
+  const results = [];
+  let attemptedChunks = [...chunks];
+  let retryWithSmallerChunks = false;
+
+  for (let i = 0; i < attemptedChunks.length; i++) {
+    const chunk = attemptedChunks[i];
+    console.log(`\nTranscribing chunk ${i + 1}/${attemptedChunks.length}...`);
+    console.log(`Chunk ${chunk.index}: ${chunk.startTime}s - ${chunk.endTime}s (${chunk.sizeMB}MB)`);
+
+    // Report progress
+    if (progressCallback) {
+      progressCallback({
+        current: i + 1,
+        total: attemptedChunks.length,
+        chunkIndex: chunk.index,
+        status: 'transcribing'
+      });
+    }
+
+    try {
+      // Try to transcribe the chunk
+      const transcription = await transcribeSingleFile(chunk.path);
+
+      results.push({
+        chunk,
+        transcription
+      });
+
+      console.log(`Chunk ${chunk.index} transcribed successfully`);
+
+    } catch (error) {
+      console.error(`Chunk ${chunk.index} failed:`, error.message);
+
+      // Check if it's a 413 error
+      if (error.message === 'PAYLOAD_TOO_LARGE') {
+        console.warn(`Chunk ${chunk.index} too large - will retry with smaller chunks`);
+        retryWithSmallerChunks = true;
+        break; // Exit loop to re-chunk
+      }
+
+      // For other errors, retry with exponential backoff
+      let retried = false;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Retrying chunk ${chunk.index} in ${delay / 1000}s (attempt ${attempt}/2)...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        try {
+          const transcription = await transcribeSingleFile(chunk.path);
+          results.push({ chunk, transcription });
+          console.log(`Chunk ${chunk.index} transcribed on retry ${attempt}`);
+          retried = true;
+          break;
+        } catch (retryError) {
+          console.error(`Retry ${attempt} failed:`, retryError.message);
+          if (retryError.message === 'PAYLOAD_TOO_LARGE') {
+            retryWithSmallerChunks = true;
+            break;
+          }
+        }
+      }
+
+      if (!retried && !retryWithSmallerChunks) {
+        throw new Error(`Failed to transcribe chunk ${chunk.index} after retries`);
+      }
+
+      if (retryWithSmallerChunks) {
+        break;
+      }
+    }
+  }
+
+  // If we need to re-chunk, throw special error
+  if (retryWithSmallerChunks) {
+    throw new Error('RECHUNK_NEEDED');
+  }
+
+  return results;
+};
+
+/**
+ * Main transcription function with automatic chunking
+ * @param {string} audioPath - Path to audio file
+ * @param {number} meetingId - Meeting ID
+ * @param {Function} progressCallback - Progress callback (optional)
+ * @returns {Promise<Object>} Transcription result
+ */
+export const transcribeWithRetry = async (audioPath, meetingId = null, progressCallback = null) => {
+  const client = getOpenAIClient();
+  if (!client) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  try {
+    console.log(`\n=== Starting transcription for: ${audioPath} ===`);
+
+    // Get full path
+    const fullAudioPath = path.isAbsolute(audioPath)
+      ? audioPath
+      : path.join(__dirname, '../..', audioPath);
+
+    // Check file size
+    const stats = await fs.stat(fullAudioPath);
+    const fileSizeMB = stats.size / (1024 * 1024);
+    console.log(`Audio file size: ${fileSizeMB.toFixed(2)}MB`);
+
+    // If file is small enough, transcribe directly
+    if (fileSizeMB <= SIZE_THRESHOLD_MB) {
+      console.log('File is under 24MB - transcribing directly');
+
+      try {
+        return await transcribeSingleFile(fullAudioPath);
+      } catch (error) {
+        // If direct transcription fails with 413, fall through to chunking
+        if (error.message !== 'PAYLOAD_TOO_LARGE') {
+          throw error;
+        }
+        console.warn('Direct transcription failed with 413 - falling back to chunking');
+      }
+    }
+
+    // File is large or direct transcription failed - use chunking
+    console.log('File requires chunking...');
+
+    if (progressCallback) {
+      progressCallback({
+        status: 'processing',
+        message: 'Converting and splitting audio...'
+      });
+    }
+
+    // Process audio: convert to WAV and split into chunks
+    const processed = await processLargeAudio(fullAudioPath, meetingId || Date.now());
+
+    // If no chunking needed (file is small after conversion)
+    if (!processed.needsChunking) {
+      console.log('After conversion, file is under 24MB - transcribing directly');
+      const result = await transcribeSingleFile(processed.wavPath);
+
+      // Cleanup converted WAV
+      await fs.unlink(processed.wavPath).catch(err =>
+        console.warn('Failed to cleanup WAV:', err.message)
+      );
+
+      return result;
+    }
+
+    // Transcribe chunks
+    console.log(`\n=== Transcribing ${processed.chunks.length} chunks ===`);
+
+    let chunkResults;
+    try {
+      chunkResults = await transcribeChunks(processed.chunks, progressCallback);
+    } catch (error) {
+      // If chunks are still too large, re-chunk with smaller duration
+      if (error.message === 'RECHUNK_NEEDED') {
+        console.log('\n=== Chunks too large - re-chunking with 5-minute segments ===');
+
+        if (progressCallback) {
+          progressCallback({
+            status: 'processing',
+            message: 'Re-chunking with smaller segments...'
+          });
+        }
+
+        // Cleanup old chunks
+        await cleanupChunks(processed.chunks.map(c => c.path));
+
+        // Create smaller chunks (5 minutes instead of 10)
+        const smallerChunks = await rechunkWithSmallerSize(
+          processed.wavPath,
+          processed.duration,
+          300 // 5 minutes
+        );
+
+        console.log(`Created ${smallerChunks.length} smaller chunks`);
+        processed.chunks = smallerChunks;
+
+        // Retry transcription
+        chunkResults = await transcribeChunks(processed.chunks, progressCallback);
+      } else {
+        throw error;
+      }
+    }
+
+    // Merge transcripts
+    if (progressCallback) {
+      progressCallback({
+        status: 'merging',
+        message: 'Merging transcripts...'
+      });
+    }
+
+    const mergedResult = mergeTranscripts(chunkResults);
+
+    // Cleanup temporary files
+    console.log('\n=== Cleaning up temporary files ===');
+    await cleanupChunks(processed.chunks.map(c => c.path));
+    await fs.unlink(processed.wavPath).catch(err =>
+      console.warn('Failed to cleanup WAV:', err.message)
+    );
+
+    console.log('=== Transcription complete ===\n');
+
+    return mergedResult;
+
+  } catch (error) {
+    console.error('Transcription failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Legacy function for backward compatibility
+ */
+export const transcribeAudio = async (audioPath, language = 'en') => {
+  return await transcribeWithRetry(audioPath);
 };
 
 /**
@@ -195,31 +462,4 @@ export const readTranscript = async (transcriptPath) => {
     console.error('Error reading transcript:', error);
     throw new Error('Failed to read transcript');
   }
-};
-
-/**
- * Retry transcription with exponential backoff
- * @param {string} audioPath - Path to audio file
- * @param {number} maxRetries - Maximum retry attempts
- * @returns {Promise<Object>} Transcription result
- */
-export const transcribeWithRetry = async (audioPath, maxRetries = 3) => {
-  let lastError;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await transcribeAudio(audioPath);
-    } catch (error) {
-      lastError = error;
-      console.error(`Transcription attempt ${attempt} failed:`, error.message);
-
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-        console.log(`Retrying in ${delay / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  throw new Error(`Transcription failed after ${maxRetries} attempts: ${lastError.message}`);
 };

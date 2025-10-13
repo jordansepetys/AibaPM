@@ -194,9 +194,9 @@ async function processMeeting(meetingId, audioPath, title, date) {
   try {
     console.log(`\n=== Processing meeting ${meetingId} ===`);
 
-    // Step 1: Transcribe audio
+    // Step 1: Transcribe audio (with automatic chunking for large files)
     console.log('Step 1: Transcribing audio...');
-    const transcription = await transcribeWithRetry(audioPath);
+    const transcription = await transcribeWithRetry(audioPath, meetingId);
 
     // Step 2: Save transcript
     console.log('Step 2: Saving transcript...');
@@ -235,21 +235,24 @@ async function processMeeting(meetingId, audioPath, title, date) {
     // Step 6: Save metadata
     console.log('Step 6: Saving metadata...');
     const existingMetadata = getMeetingMetadata.get(meetingId);
+
+    // New format: discussion_topics, context, detailed_discussion
+    // Old format for backwards compatibility: risks, open_questions (empty arrays)
     if (existingMetadata) {
       updateMeetingMetadata.run(
-        JSON.stringify(analysis.key_decisions),
-        JSON.stringify(analysis.action_items),
-        JSON.stringify(analysis.risks),
-        JSON.stringify(analysis.open_questions),
+        JSON.stringify(analysis.key_decisions || []),
+        JSON.stringify(analysis.action_items || []),
+        JSON.stringify([]), // risks - deprecated
+        JSON.stringify([]), // open_questions - deprecated
         meetingId
       );
     } else {
       createMeetingMetadata.run(
         meetingId,
-        JSON.stringify(analysis.key_decisions),
-        JSON.stringify(analysis.action_items),
-        JSON.stringify(analysis.risks),
-        JSON.stringify(analysis.open_questions)
+        JSON.stringify(analysis.key_decisions || []),
+        JSON.stringify(analysis.action_items || []),
+        JSON.stringify([]), // risks - deprecated
+        JSON.stringify([])  // open_questions - deprecated
       );
     }
 

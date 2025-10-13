@@ -9,7 +9,6 @@ import WikiEditor from './components/Wiki/WikiEditor';
 import GlobalSearch from './components/Search/GlobalSearch';
 import ProjectManager from './components/Projects/ProjectManager';
 import ChatSidebar from './components/Chat/ChatSidebar';
-import ChatButton from './components/Chat/ChatButton';
 import './App.css';
 
 function App() {
@@ -52,19 +51,19 @@ function App() {
   }, [setProjects, setMeetings, setStatus]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa' }}>
-      {/* Header */}
-      <header style={{
-        background: '#fff',
-        borderBottom: '1px solid #dee2e6',
-        padding: '20px',
-        marginBottom: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+    <div style={{ minHeight: '100vh' }} className="page-transition">
+      {/* Header - Glassmorphism */}
+      <header className="glass-card" style={{
+        padding: '20px 30px',
+        marginBottom: '30px',
+        boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+        border: 'none',
+        borderRadius: '0',
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginBottom: '15px' }}>
             <div style={{ flex: '0 0 auto' }}>
-              <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>
+              <h1 className="gradient-text" style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>
                 🎙️ Aiba PM
               </h1>
             </div>
@@ -74,7 +73,7 @@ function App() {
               }}
             />
           </div>
-          <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
             AI-Powered Meeting Transcription & Project Management
           </p>
         </div>
@@ -84,135 +83,222 @@ function App() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
         <RecordingStatus />
 
-        {/* Tab Navigation */}
-        <div style={{
+        {/* Tab Navigation - Enhanced Design */}
+        <div className="glass-card" style={{
           display: 'flex',
-          gap: '10px',
-          marginBottom: '20px'
+          gap: '8px',
+          marginBottom: '30px',
+          padding: '8px',
         }}>
           <button
             onClick={() => setAppTab('recording')}
+            className={appTab === 'recording' ? 'btn-gradient' : ''}
             style={{
-              padding: '12px 24px',
+              flex: 1,
+              padding: '14px 20px',
               fontSize: '15px',
-              fontWeight: appTab === 'recording' ? 'bold' : 'normal',
-              background: appTab === 'recording' ? '#007bff' : '#fff',
-              color: appTab === 'recording' ? '#fff' : '#495057',
-              border: '1px solid #dee2e6',
-              borderRadius: '6px',
+              fontWeight: '600',
+              background: appTab === 'recording' ? undefined : 'transparent',
+              color: appTab === 'recording' ? '#fff' : '#6b7280',
+              border: 'none',
+              borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s ease',
+              boxShadow: appTab === 'recording' ? undefined : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (appTab !== 'recording') {
+                e.target.style.background = 'rgba(99, 102, 241, 0.1)';
+                e.target.style.color = '#6366f1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (appTab !== 'recording') {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#6b7280';
+              }
             }}
           >
             🎤 Record
           </button>
           <button
             onClick={() => setAppTab('meetings')}
+            className={appTab === 'meetings' ? 'btn-gradient' : ''}
             style={{
-              padding: '12px 24px',
+              flex: 1,
+              padding: '14px 20px',
               fontSize: '15px',
-              fontWeight: appTab === 'meetings' ? 'bold' : 'normal',
-              background: appTab === 'meetings' ? '#007bff' : '#fff',
-              color: appTab === 'meetings' ? '#fff' : '#495057',
-              border: '1px solid #dee2e6',
-              borderRadius: '6px',
+              fontWeight: '600',
+              background: appTab === 'meetings' ? undefined : 'transparent',
+              color: appTab === 'meetings' ? '#fff' : '#6b7280',
+              border: 'none',
+              borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s ease',
+              boxShadow: appTab === 'meetings' ? undefined : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (appTab !== 'meetings') {
+                e.target.style.background = 'rgba(99, 102, 241, 0.1)';
+                e.target.style.color = '#6366f1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (appTab !== 'meetings') {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#6b7280';
+              }
             }}
           >
-            📋 Meetings ({meetings.length})
+            📋 Meetings <span className="badge" style={{ marginLeft: '8px', fontSize: '11px' }}>{meetings.length}</span>
           </button>
           <button
             onClick={() => setAppTab('wiki')}
+            className={appTab === 'wiki' ? 'btn-gradient' : ''}
             style={{
-              padding: '12px 24px',
+              flex: 1,
+              padding: '14px 20px',
               fontSize: '15px',
-              fontWeight: appTab === 'wiki' ? 'bold' : 'normal',
-              background: appTab === 'wiki' ? '#007bff' : '#fff',
-              color: appTab === 'wiki' ? '#fff' : '#495057',
-              border: '1px solid #dee2e6',
-              borderRadius: '6px',
+              fontWeight: '600',
+              background: appTab === 'wiki' ? undefined : 'transparent',
+              color: appTab === 'wiki' ? '#fff' : '#6b7280',
+              border: 'none',
+              borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s ease',
+              boxShadow: appTab === 'wiki' ? undefined : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (appTab !== 'wiki') {
+                e.target.style.background = 'rgba(99, 102, 241, 0.1)';
+                e.target.style.color = '#6366f1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (appTab !== 'wiki') {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#6b7280';
+              }
             }}
           >
             📚 Wiki
           </button>
           <button
             onClick={() => setAppTab('projects')}
+            className={appTab === 'projects' ? 'btn-gradient' : ''}
             style={{
-              padding: '12px 24px',
+              flex: 1,
+              padding: '14px 20px',
               fontSize: '15px',
-              fontWeight: appTab === 'projects' ? 'bold' : 'normal',
-              background: appTab === 'projects' ? '#007bff' : '#fff',
-              color: appTab === 'projects' ? '#fff' : '#495057',
-              border: '1px solid #dee2e6',
-              borderRadius: '6px',
+              fontWeight: '600',
+              background: appTab === 'projects' ? undefined : 'transparent',
+              color: appTab === 'projects' ? '#fff' : '#6b7280',
+              border: 'none',
+              borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s ease',
+              boxShadow: appTab === 'projects' ? undefined : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (appTab !== 'projects') {
+                e.target.style.background = 'rgba(99, 102, 241, 0.1)';
+                e.target.style.color = '#6366f1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (appTab !== 'projects') {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#6b7280';
+              }
             }}
           >
-            📁 Projects ({projects.length})
+            📁 Projects <span className="badge" style={{ marginLeft: '8px', fontSize: '11px' }}>{projects.length}</span>
           </button>
         </div>
 
         {/* Recording Tab */}
         {appTab === 'recording' && (
           <>
-            <div style={{
-              background: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              marginBottom: '20px'
+            <div className="glass-card card-hover" style={{
+              marginBottom: '30px',
+              padding: '0',
+              overflow: 'hidden',
             }}>
               <AudioRecorder />
             </div>
 
-            {/* Stats Section */}
+            {/* Stats Section - Glassmorphism Cards */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '20px',
+              gap: '24px',
               marginTop: '30px'
             }}>
-              <div style={{
-                background: '#fff',
-                padding: '20px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              <div className="glass-card card-hover" style={{
+                padding: '24px',
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#6c757d' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-20px',
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  borderRadius: '50%',
+                  opacity: '0.1',
+                }} />
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Total Projects
                 </h3>
-                <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#007bff' }}>
+                <p className="gradient-text" style={{ margin: 0, fontSize: '42px', fontWeight: 'bold' }}>
                   {projects.length}
                 </p>
               </div>
 
-              <div style={{
-                background: '#fff',
-                padding: '20px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              <div className="glass-card card-hover" style={{
+                padding: '24px',
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#6c757d' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-20px',
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)',
+                  borderRadius: '50%',
+                  opacity: '0.1',
+                }} />
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Total Meetings
                 </h3>
-                <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#28a745' }}>
+                <p style={{ margin: 0, fontSize: '42px', fontWeight: 'bold', background: 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   {meetings.length}
                 </p>
               </div>
 
-              <div style={{
-                background: '#fff',
-                padding: '20px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              <div className="glass-card card-hover" style={{
+                padding: '24px',
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#6c757d' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-20px',
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+                  borderRadius: '50%',
+                  opacity: '0.1',
+                }} />
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Recent Meeting
                 </h3>
-                <p style={{ margin: 0, fontSize: '18px', fontWeight: '500', color: '#495057' }}>
+                <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937', lineHeight: '1.4' }}>
                   {meetings.length > 0
                     ? meetings[0].title
                     : 'No meetings yet'}
@@ -282,11 +368,8 @@ function App() {
         )}
       </div>
 
-      {/* Chat Sidebar - Always rendered */}
+      {/* Chat Sidebar - Always rendered as left panel */}
       <ChatSidebar />
-
-      {/* Floating Chat Button */}
-      <ChatButton />
     </div>
   );
 }

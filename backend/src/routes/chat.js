@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { transcribeAudio } from '../services/transcription.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -306,6 +307,54 @@ router.delete('/', async (req, res, next) => {
     res.json({
       success: true,
       message: 'Chat history cleared',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/chat/transcribe
+ * Transcribe voice input for chat
+ */
+router.post('/transcribe', async (req, res, next) => {
+  try {
+    const upload = req.app.get('upload');
+
+    // Use multer middleware for this specific route
+    upload.single('audio')(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: 'File upload failed: ' + err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No audio file provided' });
+      }
+
+      console.log('🎤 Transcribing voice input for chat...');
+
+      try {
+        // Transcribe the audio file
+        const result = await transcribeAudio(req.file.path);
+
+        console.log(`✅ Voice transcribed: ${result.text.length} characters`);
+
+        // Clean up the temporary audio file
+        await fs.unlink(req.file.path).catch(err =>
+          console.warn('Failed to cleanup temp audio:', err.message)
+        );
+
+        res.json({
+          success: true,
+          text: result.text,
+          language: result.language,
+          duration: result.duration,
+        });
+      } catch (transcribeError) {
+        // Clean up the file even if transcription fails
+        await fs.unlink(req.file.path).catch(() => {});
+        throw transcribeError;
+      }
     });
   } catch (error) {
     next(error);

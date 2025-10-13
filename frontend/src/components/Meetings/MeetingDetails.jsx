@@ -12,6 +12,8 @@ const MeetingDetails = () => {
   const [transcript, setTranscript] = useState('');
   const [summary, setSummary] = useState(null);
   const [metadata, setMetadata] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
 
   useEffect(() => {
     if (selectedMeeting) {
@@ -19,9 +21,88 @@ const MeetingDetails = () => {
       setTranscript('');
       setSummary(null);
       setMetadata(null);
+      setIsProcessing(false);
+      setProcessingMessage('');
       loadMeetingContent();
     }
   }, [selectedMeeting?.id]); // Only re-run when meeting ID changes
+
+  // Auto-polling for background processing
+  useEffect(() => {
+    if (!selectedMeeting) return;
+
+    let pollInterval = null;
+    let pollCount = 0;
+    const MAX_POLLS = 60; // Poll for max 3 minutes (60 * 3s = 180s)
+
+    const checkProcessingStatus = async () => {
+      try {
+        const response = await meetingsAPI.getById(selectedMeeting.id);
+        const meeting = response.meeting || response;
+
+        // Check if processing is complete
+        const hasTranscript = !!meeting.transcript_path;
+        const hasSummary = !!meeting.summary_path;
+
+        if (hasTranscript && hasSummary) {
+          // Processing complete! Load the content
+          console.log('✅ Processing complete, loading content...');
+          setIsProcessing(false);
+          setProcessingMessage('');
+          await loadMeetingContent();
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+        } else {
+          // Still processing
+          if (!isProcessing) {
+            setIsProcessing(true);
+            if (!hasTranscript) {
+              setProcessingMessage('🎙️ Transcribing audio...');
+            } else if (!hasSummary) {
+              setProcessingMessage('🤖 Generating AI summary...');
+            }
+          }
+          console.log(`⏳ Still processing... (${pollCount}/${MAX_POLLS})`);
+        }
+
+        pollCount++;
+        if (pollCount >= MAX_POLLS) {
+          console.warn('⚠️ Polling timeout reached');
+          setIsProcessing(false);
+          setProcessingMessage('⚠️ Processing is taking longer than expected. Try refreshing.');
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking processing status:', error);
+      }
+    };
+
+    // Start polling immediately if no transcript/summary
+    const initialCheck = async () => {
+      if (!selectedMeeting.transcript_path || !selectedMeeting.summary_path) {
+        setIsProcessing(true);
+        setProcessingMessage('🎙️ Starting processing...');
+        await checkProcessingStatus();
+
+        // Set up interval for continuous polling
+        pollInterval = setInterval(checkProcessingStatus, 3000); // Poll every 3 seconds
+      }
+    };
+
+    initialCheck();
+
+    // Cleanup on unmount
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [selectedMeeting?.id, selectedMeeting?.transcript_path, selectedMeeting?.summary_path]);
 
   const loadMeetingContent = async () => {
     if (!selectedMeeting) return;
@@ -179,6 +260,37 @@ const MeetingDetails = () => {
           </button>
         ))}
       </div>
+
+      {/* Processing Status Banner */}
+      {isProcessing && (
+        <div style={{
+          padding: '15px 20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          borderBottom: '1px solid #dee2e6'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '3px solid rgba(255,255,255,0.3)',
+            borderTop: '3px solid white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          {processingMessage}
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{

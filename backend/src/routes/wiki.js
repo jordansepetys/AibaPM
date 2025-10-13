@@ -234,6 +234,10 @@ router.post('/:projectId/apply-suggestions', async (req, res, next) => {
     const { projectId } = req.params;
     const { suggestions, meetingId } = req.body;
 
+    console.log(`📝 Applying wiki suggestions for project ${projectId}, meeting ${meetingId}`);
+    console.log(`   User guide updates: ${suggestions?.user_guide_updates?.length || 0}`);
+    console.log(`   Technical updates: ${suggestions?.technical_updates?.length || 0}`);
+
     if (!suggestions || !meetingId) {
       return res.status(400).json({ error: 'Suggestions and meeting ID are required' });
     }
@@ -247,12 +251,16 @@ router.post('/:projectId/apply-suggestions', async (req, res, next) => {
     // Get current wiki content
     const wikiPath = path.join(WIKI_DIR, `project-${projectId}.md`);
     let currentWiki = '';
+    let isNewWiki = false;
 
     try {
       currentWiki = await fs.readFile(wikiPath, 'utf-8');
+      console.log(`   Found existing wiki (${currentWiki.length} chars)`);
     } catch (error) {
       if (error.code === 'ENOENT') {
         currentWiki = getWikiTemplate(project.name);
+        isNewWiki = true;
+        console.log(`   Creating new wiki from template`);
       } else {
         throw error;
       }
@@ -264,6 +272,7 @@ router.post('/:projectId/apply-suggestions', async (req, res, next) => {
     // Add changelog entry if provided
     if (suggestions.changelog_entry) {
       updatedWiki = addChangelogEntry(updatedWiki, suggestions.changelog_entry, meetingId);
+      console.log(`   Added changelog entry: ${suggestions.changelog_entry}`);
     }
 
     // Ensure wiki directory exists
@@ -273,14 +282,20 @@ router.post('/:projectId/apply-suggestions', async (req, res, next) => {
     await fs.writeFile(wikiPath, updatedWiki, 'utf-8');
 
     const stats = await fs.stat(wikiPath);
+    const totalUpdates = (suggestions.user_guide_updates?.length || 0) + (suggestions.technical_updates?.length || 0);
+
+    console.log(`✅ Wiki updated successfully (${updatedWiki.length} chars, ${totalUpdates} updates applied)`);
 
     res.json({
       message: 'Wiki updated successfully with suggestions',
       projectId: parseInt(projectId, 10),
       lastUpdated: stats.mtime,
       changesApplied: suggestions.changes_detected?.length || 0,
+      updatesApplied: totalUpdates,
+      isNewWiki,
     });
   } catch (error) {
+    console.error('❌ Error applying wiki suggestions:', error);
     next(error);
   }
 });
@@ -379,14 +394,25 @@ function applySectionUpdate(wiki, update, parentSection) {
 
   if (update.action === 'add') {
     // Add new subsection under parent
-    const parentIndex = wiki.indexOf(parentSection);
-    if (parentIndex !== -1) {
+    let parentIndex = wiki.indexOf(parentSection);
+
+    // If parent section not found, create it at the end before Changelog
+    if (parentIndex === -1) {
+      const changelogIndex = wiki.indexOf('## 📝 Changelog');
+      const insertPos = changelogIndex !== -1 ? changelogIndex : wiki.length;
+
+      // Add parent section with content
+      const newParentSection = `\n${parentSection}\n\n${sectionHeader}\n${update.content}\n\n`;
+      wiki = wiki.slice(0, insertPos) + newParentSection + wiki.slice(insertPos);
+      console.log(`Created new parent section: ${parentSection} with subsection: ${update.section}`);
+    } else {
       // Find the end of this parent section (next ## heading or end of document)
       let insertIndex = wiki.indexOf('\n## ', parentIndex + 1);
       if (insertIndex === -1) insertIndex = wiki.length;
 
       const newContent = `\n${sectionHeader}\n${update.content}\n`;
       wiki = wiki.slice(0, insertIndex) + newContent + wiki.slice(insertIndex);
+      console.log(`Added subsection: ${update.section} to existing parent: ${parentSection}`);
     }
   } else if (update.action === 'update' || update.action === 'replace') {
     // Find and update existing section
@@ -399,9 +425,11 @@ function applySectionUpdate(wiki, update, parentSection) {
       if (realEnd !== -1) {
         const replacement = `${sectionHeader}\n${update.content}\n`;
         wiki = wiki.slice(0, sectionIndex) + replacement + wiki.slice(realEnd);
+        console.log(`Updated subsection: ${update.section}`);
       }
     } else {
-      // Section doesn't exist, add it
+      // Section doesn't exist, add it as new
+      console.log(`Subsection not found, adding as new: ${update.section}`);
       wiki = applySectionUpdate(wiki, { ...update, action: 'add' }, parentSection);
     }
   }

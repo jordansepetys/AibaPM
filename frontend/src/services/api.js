@@ -243,6 +243,22 @@ export const chatAPI = {
       handleError(error);
     }
   },
+
+  transcribeVoice: async (audioBlob) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice-input.webm');
+
+      const response = await api.post('/api/chat/transcribe', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
 };
 
 // Health check

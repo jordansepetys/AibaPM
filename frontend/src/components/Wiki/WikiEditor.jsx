@@ -138,10 +138,7 @@ const WikiEditor = () => {
   }
 
   return (
-    <div style={{
-      background: '#fff',
-      borderRadius: '8px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    <div className="glass-card" style={{
       overflow: 'hidden',
       height: 'calc(100vh - 250px)',
       minHeight: '600px',
@@ -157,17 +154,50 @@ const WikiEditor = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '10px'
+        gap: '15px',
+        flexShrink: 0,
       }}>
-        <div>
-          <h2 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: 'bold' }}>
-            📚 {selectedProject.name} - Wiki
-          </h2>
-          <div style={{ fontSize: '13px', color: '#6c757d' }}>
-            {isSaving && '💾 Saving...'}
-            {!isSaving && lastSaved && `✓ ${formatLastSaved()}`}
-            {!isSaving && !lastSaved && 'Auto-saves 2 seconds after last change'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1, minWidth: '300px' }}>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: 'bold' }}>
+              📚 Wiki
+            </h2>
+            <div style={{ fontSize: '13px', color: '#6c757d' }}>
+              {isSaving && '💾 Saving...'}
+              {!isSaving && lastSaved && `✓ ${formatLastSaved()}`}
+              {!isSaving && !lastSaved && 'Auto-saves 2 seconds after last change'}
+            </div>
           </div>
+
+          {/* Project Selector */}
+          {projects.length > 0 && (
+            <select
+              value={selectedProject?.id || ''}
+              onChange={(e) => {
+                const project = projects.find(p => p.id === parseInt(e.target.value));
+                if (project) {
+                  selectProject(project);
+                  setContent(''); // Clear content while loading
+                }
+              }}
+              style={{
+                padding: '8px 12px',
+                fontSize: '14px',
+                border: '1px solid #ced4da',
+                borderRadius: '6px',
+                background: '#fff',
+                minWidth: '200px',
+                cursor: 'pointer',
+                fontWeight: '500',
+              }}
+            >
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -178,11 +208,11 @@ const WikiEditor = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search in wiki..."
             style={{
-              padding: '6px 12px',
+              padding: '8px 12px',
               fontSize: '13px',
               border: '1px solid #ced4da',
-              borderRadius: '4px',
-              width: '200px'
+              borderRadius: '6px',
+              width: '180px'
             }}
           />
 
@@ -190,13 +220,10 @@ const WikiEditor = () => {
           <button
             onClick={handleManualSave}
             disabled={isSaving}
+            className="btn-gradient"
             style={{
-              padding: '6px 16px',
+              padding: '8px 16px',
               fontSize: '13px',
-              background: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
               cursor: isSaving ? 'not-allowed' : 'pointer',
               opacity: isSaving ? 0.6 : 1
             }}
@@ -211,20 +238,24 @@ const WikiEditor = () => {
         flex: 1,
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minHeight: 0, // Important for flex scrolling
       }}>
         {/* Editor Panel */}
         <div style={{
           borderRight: '1px solid #dee2e6',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          overflow: 'hidden',
+          minHeight: 0,
         }}>
           <div style={{
             padding: '10px 15px',
             background: '#f8f9fa',
             borderBottom: '1px solid #dee2e6',
             fontWeight: 'bold',
-            fontSize: '14px'
+            fontSize: '14px',
+            flexShrink: 0,
           }}>
             ✏️ Editor
           </div>
@@ -241,7 +272,9 @@ const WikiEditor = () => {
               fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
               lineHeight: '1.6',
               resize: 'none',
-              outline: 'none'
+              outline: 'none',
+              overflowY: 'auto', // Enable scrolling
+              minHeight: 0,
             }}
           />
         </div>
@@ -250,14 +283,17 @@ const WikiEditor = () => {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          background: '#fafbfc'
+          background: '#fafbfc',
+          overflow: 'hidden',
+          minHeight: 0,
         }}>
           <div style={{
             padding: '10px 15px',
             background: '#f8f9fa',
             borderBottom: '1px solid #dee2e6',
             fontWeight: 'bold',
-            fontSize: '14px'
+            fontSize: '14px',
+            flexShrink: 0,
           }}>
             👁️ Preview
           </div>
@@ -269,7 +305,8 @@ const WikiEditor = () => {
               overflowY: 'auto',
               fontSize: '14px',
               lineHeight: '1.8',
-              textAlign: 'left'
+              textAlign: 'left',
+              minHeight: 0,
             }}
             dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
           />

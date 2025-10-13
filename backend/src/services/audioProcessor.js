@@ -140,6 +140,7 @@ export const validateAudioFile = (mimetype, size) => {
     'audio/ogg'
   ];
 
+  // Allow large files - chunking will handle files over 25MB
   const maxSize = 100 * 1024 * 1024; // 100MB
 
   if (!allowedTypes.includes(mimetype)) {
