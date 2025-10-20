@@ -31,11 +31,13 @@ pnpm-debug.log*
 
 # Storage (audio recordings, transcripts, summaries - potentially large/sensitive)
 /backend/storage/audio/*
+/backend/storage/chunks/*
 /backend/storage/transcripts/*
 /backend/storage/summaries/*
 /backend/storage/wikis/*
 # Keep the directory structure
 !/backend/storage/audio/.gitkeep
+!/backend/storage/chunks/.gitkeep
 !/backend/storage/transcripts/.gitkeep
 !/backend/storage/summaries/.gitkeep
 !/backend/storage/wikis/.gitkeep

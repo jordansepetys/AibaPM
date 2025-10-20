@@ -8,7 +8,14 @@ const AIChat = ({ isSidebar = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [aiModel, setAiModel] = useState('Loading...');
+
+  // Persist project selection in localStorage
+  const [currentProjectId, setCurrentProjectId] = useState(() => {
+    const saved = localStorage.getItem('chatProjectId');
+    return saved ? parseInt(saved) : null;
+  });
+
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceMediaRecorder, setVoiceMediaRecorder] = useState(null);
   const messagesEndRef = useRef(null);
@@ -19,6 +26,29 @@ const AIChat = ({ isSidebar = false }) => {
   useEffect(() => {
     loadChatHistory();
   }, [currentProjectId]);
+
+  // Fetch AI model info on mount
+  useEffect(() => {
+    fetchModelInfo();
+  }, []);
+
+  const fetchModelInfo = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/health');
+      const data = await response.json();
+
+      if (data.modelName) {
+        setAiModel(data.modelName);
+        // Store backend info for future reference
+        localStorage.setItem('aiBackend', data.aiBackend);
+      } else {
+        setAiModel('Claude Sonnet 4.5'); // Fallback
+      }
+    } catch (error) {
+      console.error('Failed to fetch model info:', error);
+      setAiModel('Claude Sonnet 4.5'); // Default fallback
+    }
+  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -109,6 +139,13 @@ const AIChat = ({ isSidebar = false }) => {
   const handleProjectChange = (projectId) => {
     const newProjectId = projectId ? parseInt(projectId) : null;
     setCurrentProjectId(newProjectId);
+
+    // Save to localStorage to persist across panel open/close
+    if (newProjectId) {
+      localStorage.setItem('chatProjectId', newProjectId.toString());
+    } else {
+      localStorage.removeItem('chatProjectId');
+    }
 
     // Also update global selected project if a project is chosen
     if (newProjectId) {
@@ -274,6 +311,28 @@ const AIChat = ({ isSidebar = false }) => {
           borderBottom: '1px solid #dee2e6',
           background: '#f8f9fa',
         }}>
+          {/* Model Name Display */}
+          <div style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}>
+            <span style={{ fontSize: '16px' }}>✨</span>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: 'white',
+              letterSpacing: '0.3px',
+            }}>
+              {aiModel}
+            </span>
+          </div>
+
           {/* Project Selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ fontSize: '13px', fontWeight: '500', color: '#495057' }}>

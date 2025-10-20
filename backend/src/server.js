@@ -57,7 +57,14 @@ app.use('/storage', express.static(path.join(__dirname, '../storage')));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  const aiBackend = process.env.AI_BACKEND || 'openai';
+  const modelName = aiBackend === 'anthropic' ? 'Claude Sonnet 4.5' : 'GPT-4o';
+  res.json({
+    status: 'ok',
+    message: 'Server is running',
+    aiBackend: aiBackend,
+    modelName: modelName,
+  });
 });
 
 // API Routes
