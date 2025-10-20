@@ -405,15 +405,15 @@ export async function getGlobalSkills() { }
 export async function getProjectSkills(projectId) { }
 ```
 
-**Checkpoint 1.3:**
-- [ ] Service loads without errors
-- [ ] Scoring algorithm works (phrase=4, word=2, partial=1)
-- [ ] Strict precedence: project skills ALWAYS beat globals
-- [ ] Token budgeting prevents prompt bloat
-- [ ] Compression works for large skills
-- [ ] Observable output includes score, matches, tokens
-- [ ] Returns empty array when no matches
-- [ ] Deterministic sorting (same input = same output)
+**Checkpoint 1.3:** ✅ **COMPLETE**
+- [x] Service loads without errors
+- [x] Scoring algorithm works (phrase=4, word=2, partial=1)
+- [x] Strict precedence: project skills ALWAYS beat globals
+- [x] Token budgeting prevents prompt bloat
+- [x] Compression works for large skills
+- [x] Observable output includes score, matches, tokens
+- [x] Returns empty array when no matches
+- [x] Deterministic sorting (same input = same output)
 
 ---
 
