@@ -259,10 +259,10 @@ backend/storage/
 │       └── sprint-planning-format.md
 ```
 
-**Checkpoint 1.2:**
-- [ ] Directories created
-- [ ] Can read/write skill markdown files
-- [ ] Path resolution works for global vs project skills
+**Checkpoint 1.2:** ✅ **COMPLETE**
+- [x] Directories created
+- [x] Can read/write skill markdown files
+- [x] Path resolution works for global vs project skills
 
 ---
 

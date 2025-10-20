@@ -29,18 +29,21 @@ pnpm-debug.log*
 *.sqlite
 *.db
 
-# Storage (audio recordings, transcripts, summaries - potentially large/sensitive)
+# Storage (audio recordings, transcripts, summaries, skills - potentially large/sensitive)
 /backend/storage/audio/*
 /backend/storage/chunks/*
 /backend/storage/transcripts/*
 /backend/storage/summaries/*
 /backend/storage/wikis/*
+/backend/storage/skills/*
 # Keep the directory structure
 !/backend/storage/audio/.gitkeep
 !/backend/storage/chunks/.gitkeep
 !/backend/storage/transcripts/.gitkeep
 !/backend/storage/summaries/.gitkeep
 !/backend/storage/wikis/.gitkeep
+!/backend/storage/skills/.gitkeep
+!/backend/storage/skills/global/.gitkeep
 
 # Uploads
 /backend/uploads/*
