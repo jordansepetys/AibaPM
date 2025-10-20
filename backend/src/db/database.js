@@ -79,6 +79,42 @@ function initializeDatabase() {
     )
   `);
 
+  // Skills table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS skills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT,
+      content TEXT NOT NULL,
+      is_global BOOLEAN DEFAULT 0,
+      project_id INTEGER,
+      trigger_keywords TEXT,
+      auto_activate BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Composite unique constraint: prevents slug conflicts within same scope
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_skills_slug_scope
+      ON skills(slug, COALESCE(project_id, 0))
+  `);
+
+  // Skill usage tracking table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS skill_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_id INTEGER NOT NULL,
+      chat_message_id INTEGER NOT NULL,
+      used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE,
+      FOREIGN KEY (chat_message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('Database initialized successfully');
 }
 
@@ -191,6 +227,59 @@ export const getRecentChatMessages = db.prepare(`
 
 export const clearChatHistory = db.prepare(`
   DELETE FROM chat_messages WHERE project_id IS ? OR project_id = ?
+`);
+
+// Skills
+export const createSkill = db.prepare(`
+  INSERT INTO skills (name, slug, description, content, is_global, project_id, trigger_keywords, auto_activate)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+export const getAllSkills = db.prepare(`
+  SELECT * FROM skills ORDER BY created_at DESC
+`);
+
+export const getSkillById = db.prepare(`
+  SELECT * FROM skills WHERE id = ?
+`);
+
+export const getSkillBySlug = db.prepare(`
+  SELECT * FROM skills WHERE slug = ? AND (project_id IS ? OR project_id = ?)
+`);
+
+export const getGlobalSkills = db.prepare(`
+  SELECT * FROM skills WHERE is_global = 1 AND auto_activate = 1 ORDER BY updated_at DESC
+`);
+
+export const getProjectSkills = db.prepare(`
+  SELECT * FROM skills WHERE project_id = ? AND auto_activate = 1 ORDER BY updated_at DESC
+`);
+
+export const getSkillsByProject = db.prepare(`
+  SELECT * FROM skills WHERE project_id = ? ORDER BY created_at DESC
+`);
+
+export const updateSkill = db.prepare(`
+  UPDATE skills
+  SET name = ?, slug = ?, description = ?, content = ?, trigger_keywords = ?, auto_activate = ?, updated_at = CURRENT_TIMESTAMP
+  WHERE id = ?
+`);
+
+export const deleteSkill = db.prepare(`
+  DELETE FROM skills WHERE id = ?
+`);
+
+// Skill usage tracking
+export const trackSkillUsage = db.prepare(`
+  INSERT INTO skill_usage (skill_id, chat_message_id)
+  VALUES (?, ?)
+`);
+
+export const getSkillUsageStats = db.prepare(`
+  SELECT skill_id, COUNT(*) as usage_count, MAX(used_at) as last_used
+  FROM skill_usage
+  WHERE skill_id = ?
+  GROUP BY skill_id
 `);
 
 export default db;

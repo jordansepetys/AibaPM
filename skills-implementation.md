@@ -225,14 +225,14 @@ function ensureUniqueSlug(baseSlug, projectId) {
 - Conflict (same project): → Slug: `marketing-status-format-2`
 - Different scopes OK: Global `status-format` + Project `status-format` (both allowed)
 
-**Checkpoint 1.1:**
-- [ ] Tables created successfully
-- [ ] Foreign key constraints working
-- [ ] Composite unique index prevents slug conflicts within scope
-- [ ] Can insert/query skills
-- [ ] Slug auto-generation works (generateSlug + ensureUniqueSlug)
-- [ ] Slug uniqueness enforced (same slug allowed in different scopes)
-- [ ] Cascade delete works (delete project → deletes project skills)
+**Checkpoint 1.1:** ✅ **COMPLETE**
+- [x] Tables created successfully
+- [x] Foreign key constraints working
+- [x] Composite unique index prevents slug conflicts within scope
+- [x] Can insert/query skills
+- [x] Slug auto-generation works (generateSlug + ensureUniqueSlug)
+- [x] Slug uniqueness enforced (same slug allowed in different scopes)
+- [x] Cascade delete works (delete project → deletes project skills)
 
 ---
 
