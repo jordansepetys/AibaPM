@@ -9,6 +9,8 @@ const AIChat = ({ isSidebar = false }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiModel, setAiModel] = useState('Loading...');
+  const [activeSkills, setActiveSkills] = useState([]);
+  const [disableSkills, setDisableSkills] = useState(false);
 
   // Persist project selection in localStorage
   const [currentProjectId, setCurrentProjectId] = useState(() => {
@@ -86,7 +88,15 @@ const AIChat = ({ isSidebar = false }) => {
 
     try {
       setIsLoading(true);
-      const response = await chatAPI.sendMessage(userMessage, currentProjectId);
+      const response = await chatAPI.sendMessage(userMessage, currentProjectId, { disableSkills });
+
+      // Update active skills from response
+      if (response.activeSkills) {
+        setActiveSkills(response.activeSkills);
+      }
+
+      // Reset disable skills toggle after sending
+      setDisableSkills(false);
 
       // Add AI response to messages
       const aiMessage = {
@@ -502,6 +512,42 @@ const AIChat = ({ isSidebar = false }) => {
         )}
       </div>
 
+      {/* Active Skills Indicator */}
+      {(activeSkills.length > 0 || disableSkills) && (
+        <div style={{
+          padding: '10px 20px',
+          borderTop: '1px solid #dee2e6',
+          background: '#f8f9fa',
+          fontSize: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 'bold', color: '#666' }}>
+              🎯 Active Skills:
+            </span>
+            {activeSkills.length > 0 ? (
+              activeSkills.map((skill, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    padding: '3px 8px',
+                    background: disableSkills ? '#e0e0e0' : '#8b5cf6',
+                    color: disableSkills ? '#999' : 'white',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    textDecoration: disableSkills ? 'line-through' : 'none',
+                  }}
+                  title={`${skill.name} (${skill.scope}, score: ${skill.score})`}
+                >
+                  {skill.name}
+                </span>
+              ))
+            ) : (
+              <span style={{ color: '#999' }}>None</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
       <div style={{
         padding: '15px 20px',
@@ -575,11 +621,33 @@ const AIChat = ({ isSidebar = false }) => {
         </div>
         <div style={{
           marginTop: '8px',
-          fontSize: '12px',
-          color: '#6c757d',
-          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}>
-          {isRecordingVoice ? '🎤 Recording... Click stop when done' : 'Press Enter to send • Shift+Enter for new line • Click 🎤 to dictate'}
+          <label style={{
+            fontSize: '12px',
+            color: '#6c757d',
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            gap: '5px',
+          }}>
+            <input
+              type="checkbox"
+              checked={disableSkills}
+              onChange={(e) => setDisableSkills(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Disable skills for this message
+          </label>
+          <div style={{
+            fontSize: '12px',
+            color: '#6c757d',
+            textAlign: 'right',
+          }}>
+            {isRecordingVoice ? '🎤 Recording... Click stop when done' : 'Press Enter to send • Shift+Enter for new line'}
+          </div>
         </div>
       </div>
 

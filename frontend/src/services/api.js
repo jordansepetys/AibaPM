@@ -212,11 +212,12 @@ export const searchAPI = {
 
 // Chat API
 export const chatAPI = {
-  sendMessage: async (message, projectId = null) => {
+  sendMessage: async (message, projectId = null, options = {}) => {
     try {
       const response = await api.post('/api/chat', {
         message,
         projectId,
+        ...options, // Includes disableSkills flag
       });
       return response.data;
     } catch (error) {
@@ -254,6 +255,58 @@ export const chatAPI = {
           'Content-Type': 'multipart/form-data',
         },
       });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
+// Skills API
+export const skillsAPI = {
+  getAll: async (filters = {}) => {
+    try {
+      const params = {};
+      if (filters.projectId) params.projectId = filters.projectId;
+      if (filters.global !== undefined) params.global = filters.global;
+
+      const response = await api.get('/api/skills', { params });
+      return response.data.skills || [];
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/api/skills/${id}`);
+      return response.data.skill;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  create: async (skillData) => {
+    try {
+      const response = await api.post('/api/skills', skillData);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  update: async (id, skillData) => {
+    try {
+      const response = await api.put(`/api/skills/${id}`, skillData);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/api/skills/${id}`);
       return response.data;
     } catch (error) {
       handleError(error);

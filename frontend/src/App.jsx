@@ -8,6 +8,7 @@ import MeetingDetails from './components/Meetings/MeetingDetails';
 import WikiEditor from './components/Wiki/WikiEditor';
 import GlobalSearch from './components/Search/GlobalSearch';
 import ProjectManager from './components/Projects/ProjectManager';
+import SkillsManager from './components/Skills/SkillsManager';
 import ChatSidebar from './components/Chat/ChatSidebar';
 import './App.css';
 
@@ -182,6 +183,37 @@ function App() {
             }}
           >
             📚 Wiki
+          </button>
+          <button
+            onClick={() => setAppTab('skills')}
+            className={appTab === 'skills' ? 'btn-gradient' : ''}
+            style={{
+              flex: 1,
+              padding: '14px 20px',
+              fontSize: '15px',
+              fontWeight: '600',
+              background: appTab === 'skills' ? undefined : 'transparent',
+              color: appTab === 'skills' ? '#fff' : '#6b7280',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: appTab === 'skills' ? undefined : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (appTab !== 'skills') {
+                e.target.style.background = 'rgba(99, 102, 241, 0.1)';
+                e.target.style.color = '#6366f1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (appTab !== 'skills') {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#6b7280';
+              }
+            }}
+          >
+            🎯 Skills
           </button>
           <button
             onClick={() => setAppTab('projects')}
@@ -360,6 +392,11 @@ function App() {
         {/* Wiki Tab */}
         {appTab === 'wiki' && (
           <WikiEditor />
+        )}
+
+        {/* Skills Tab */}
+        {appTab === 'skills' && (
+          <SkillsManager />
         )}
 
         {/* Projects Tab */}

@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { transcribeAudio } from '../services/transcription.js';
+import { findRelevantSkills, buildSkillsContext } from '../services/skillMatcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -190,7 +191,7 @@ async function getAIResponse(messages, systemPrompt, backend = AI_BACKEND) {
  */
 router.post('/', async (req, res, next) => {
   try {
-    const { message, projectId } = req.body;
+    const { message, projectId, disableSkills = false } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' });
@@ -226,6 +227,27 @@ router.post('/', async (req, res, next) => {
       fullSystemPrompt += `\n\nNote: User has selected a project, but no context is available yet. Acknowledge this if relevant.`;
     }
 
+    // Find and apply relevant skills (unless manually disabled)
+    let relevantSkills = [];
+    if (!disableSkills) {
+      relevantSkills = await findRelevantSkills(message, projectId);
+      const skillsContext = buildSkillsContext(relevantSkills);
+      if (skillsContext) {
+        fullSystemPrompt += skillsContext;
+      }
+    }
+
+    // Log skills status
+    if (disableSkills) {
+      console.log('⏸️  Skills manually disabled for this message');
+    } else if (relevantSkills.length > 0) {
+      console.log(`🎯 Applied ${relevantSkills.length} skill(s):`,
+        relevantSkills.map(s => `${s.name} (${s.scope}, score=${s.score})`).join(', ')
+      );
+    } else {
+      console.log('ℹ️  No matching skills found');
+    }
+
     // Get AI response
     console.log(`💬 Chat request ${projectId ? `for project ${projectId}` : '(general)'}`);
     const aiResponse = await getAIResponse(aiMessages, fullSystemPrompt);
@@ -246,6 +268,17 @@ router.post('/', async (req, res, next) => {
       null
     );
 
+    // Track skill usage (only if skills were actually used)
+    if (!disableSkills && relevantSkills.length > 0) {
+      for (const skill of relevantSkills) {
+        try {
+          db.trackSkillUsage.run(skill.id, aiMessageResult.lastInsertRowid);
+        } catch (error) {
+          console.warn(`Warning: Could not track skill usage for skill ${skill.id}:`, error.message);
+        }
+      }
+    }
+
     console.log(`✅ Chat response generated`);
 
     res.json({
@@ -255,6 +288,12 @@ router.post('/', async (req, res, next) => {
       context: contextData.hasContext ? {
         projectName: contextData.projectName,
       } : null,
+      activeSkills: relevantSkills.map(s => ({
+        id: s.id,
+        name: s.name,
+        scope: s.scope,
+        score: s.score,
+      })),
     });
   } catch (error) {
     next(error);
