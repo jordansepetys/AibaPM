@@ -16,6 +16,8 @@ Never forget what was discussed in your meetings again. Aiba PM automatically tr
 - **🔍 Full-Text Search** - Find anything across all your meetings instantly with relevance ranking
 - **📚 Auto-Updating Wiki** - AI suggests updates to your project documentation based on meeting content
 - **💬 AI Chat Mentor** - Context-aware assistant that knows your entire project history
+- **🎯 Skills System** - Custom AI behaviors and instructions that activate automatically based on keywords
+- **💭 Discuss Meeting** - Instantly open AI chat with full meeting context for deeper exploration
 
 ### Smart Features
 - **Background Processing** - Transcription and analysis happen automatically after recording
@@ -212,6 +214,61 @@ The AI has access to your project's wiki and last 5 meetings!
 **Pro tip:** After a meeting, go to the meeting summary and click "Get Wiki Suggestions" - AI will suggest specific updates based on what was discussed!
 
 ![Wiki Updates](./Screenshots/WikiUpdate.png)
+
+### Using the Skills System
+
+The Skills System lets you customize how the AI responds by creating reusable "skills" that activate automatically based on keywords.
+
+**What are Skills?**
+- Custom instructions and behaviors for the AI
+- Can be **Global** (active across all projects) or **Project-specific**
+- Automatically activate when trigger keywords appear in your chat messages
+- Written in markdown with clear instructions for the AI
+
+**How to Create a Skill:**
+
+1. Go to "Skills" tab
+2. Click "Create Skill"
+3. Fill in the details:
+   - **Name**: What this skill does (e.g., "Marketing Status Format")
+   - **Description**: Brief explanation
+   - **Trigger Keywords**: Words that activate this skill (e.g., "status", "update", "marketing")
+   - **Content**: Markdown instructions for the AI
+   - **Scope**: Global or project-specific
+4. Save and it's ready!
+
+**Example Use Cases:**
+- **Status Report Format**: Trigger on "status" → AI formats updates consistently
+- **Code Review Guidelines**: Trigger on "review" → AI follows your code review standards
+- **Meeting Notes Template**: Trigger on "notes" → AI structures meeting notes your way
+- **Technical Writing Style**: Trigger on "documentation" → AI matches your docs style
+
+**How It Works:**
+- Skills are automatically matched to your chat messages based on keywords
+- Multiple skills can activate at once
+- Project skills take priority over global skills
+- Skills are injected into the AI's system prompt seamlessly
+
+### Discussing Meetings with AI
+
+Want to dive deeper into a meeting's content? Use the "Discuss Meeting" feature!
+
+**How to Use:**
+
+1. Go to any meeting in the "Meetings" tab
+2. In the **AI Mentor Feedback** section, click **💬 Discuss Meeting**
+3. Chat sidebar opens automatically with the meeting title pre-filled
+4. The AI has full context: transcript, summary, wiki, and project history
+5. Ask questions, explore insights, or brainstorm solutions
+
+**What You Can Do:**
+- **Deep Dive**: "What were the technical tradeoffs we discussed?"
+- **Clarify**: "Can you explain the authentication decision in simpler terms?"
+- **Connect**: "How does this meeting relate to our previous architecture discussion?"
+- **Action**: "Help me create a plan for the action items mentioned"
+- **Update Wiki**: "What should we add to the wiki based on this meeting?"
+
+The AI remembers the entire meeting context, so you can have a natural conversation about everything discussed!
 
 ## ⚙️ Configuration
 
