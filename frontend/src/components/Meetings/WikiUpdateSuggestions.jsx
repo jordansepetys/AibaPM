@@ -152,6 +152,59 @@ function WikiUpdateSuggestions({ meeting }) {
                 </div>
               ) : (
                 <>
+                  {/* Overview Updates */}
+                  {suggestions.overview_updates && suggestions.overview_updates.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        marginBottom: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ color: '#6366f1' }}>🎯</span>
+                        Project Overview Updates ({suggestions.overview_updates.length})
+                      </h4>
+                      {suggestions.overview_updates.map((update, idx) => (
+                        <div key={idx} style={{
+                          background: '#f0f9ff',
+                          border: '2px solid #6366f1',
+                          borderRadius: '6px',
+                          padding: '15px',
+                          marginBottom: '10px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <strong style={{ fontSize: '13px', color: '#6366f1' }}>Overview</strong>
+                            <span style={{
+                              padding: '2px 8px',
+                              background: update.action === 'add' ? '#d4edda' : update.action === 'update' ? '#fff3cd' : '#ffc107',
+                              color: update.action === 'add' ? '#155724' : update.action === 'update' ? '#856404' : '#000',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 'bold'
+                            }}>
+                              {update.action.toUpperCase()}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '12px', color: '#6c757d', marginBottom: '10px', fontStyle: 'italic' }}>
+                            📌 {update.reason}
+                          </p>
+                          <div style={{
+                            background: '#fff',
+                            padding: '12px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            lineHeight: '1.6',
+                            color: '#1f2937'
+                          }}>
+                            {update.content}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Changes Detected */}
                   {suggestions.changes_detected && suggestions.changes_detected.length > 0 && (
                     <div style={{

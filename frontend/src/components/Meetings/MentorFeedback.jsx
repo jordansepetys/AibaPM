@@ -2,10 +2,29 @@ import { useState } from 'react';
 import useStore from '../../stores/useStore';
 
 const MentorFeedback = ({ meeting }) => {
-  const { setStatus } = useStore();
+  const { setStatus, setChatSidebarOpen, projects } = useStore();
   const [feedback, setFeedback] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Open chat with meeting context
+  const handleDiscussMeeting = () => {
+    // Set the project context in localStorage so AIChat picks it up
+    if (meeting.project_id) {
+      localStorage.setItem('chatProjectId', meeting.project_id.toString());
+
+      // Store a flag to indicate we want to discuss this specific meeting
+      const meetingContext = {
+        meetingId: meeting.id,
+        meetingTitle: meeting.title,
+        meetingDate: meeting.date,
+      };
+      localStorage.setItem('chatMeetingContext', JSON.stringify(meetingContext));
+    }
+
+    // Open the chat sidebar
+    setChatSidebarOpen(true);
+  };
 
   // Cache feedback in component state to avoid duplicate requests
   const requestFeedback = async () => {
@@ -65,22 +84,48 @@ const MentorFeedback = ({ meeting }) => {
               Get AI-powered insights and suggestions for this meeting
             </p>
           </div>
-          <button
-            onClick={requestFeedback}
-            disabled={isLoading}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
-            }}
-          >
-            {isLoading ? '⏳ Analyzing...' : '✨ Get Feedback'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handleDiscussMeeting}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                background: '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#4f46e5';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#6366f1';
+                e.target.style.transform = 'translateY(0)';
+              }}
+              title="Open AI chat to discuss this meeting in detail"
+            >
+              💬 Discuss Meeting
+            </button>
+            <button
+              onClick={requestFeedback}
+              disabled={isLoading}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                background: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.6 : 1
+              }}
+            >
+              {isLoading ? '⏳ Analyzing...' : '✨ Get Feedback'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -100,18 +145,46 @@ const MentorFeedback = ({ meeting }) => {
         <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
           🎓 AI Mentor Feedback
         </h4>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '20px',
-            padding: '0'
-          }}
-        >
-          {isExpanded ? '▼' : '▶'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {isExpanded && (
+            <button
+              onClick={handleDiscussMeeting}
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                background: '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#4f46e5';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#6366f1';
+                e.target.style.transform = 'translateY(0)';
+              }}
+              title="Open AI chat to discuss this meeting in detail"
+            >
+              💬 Discuss
+            </button>
+          )}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '20px',
+              padding: '0'
+            }}
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+        </div>
       </div>
 
       {isExpanded && (

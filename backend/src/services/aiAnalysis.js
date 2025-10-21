@@ -305,6 +305,7 @@ Your task:
 1. Identify NEW information that should be added to the wiki
 2. Identify CHANGES to existing information (e.g., switching from one technology to another)
 3. Structure suggestions into:
+   - Project Overview (purpose, goals, what the project does, main features)
    - User Guide sections (how-to, basic usage, getting started)
    - Technical Documentation sections (architecture decisions, implementation details, APIs)
 4. Generate a changelog entry if there are significant changes
@@ -312,6 +313,13 @@ Your task:
 Respond in JSON format:
 {
   "has_updates": true/false,
+  "overview_updates": [
+    {
+      "action": "add" or "update" or "replace",
+      "content": "Brief description of the project, its purpose, goals, and main features",
+      "reason": "why this update is needed (e.g., 'Project goals clarified in meeting', 'Purpose expanded to include X')"
+    }
+  ],
   "user_guide_updates": [
     {
       "section": "section name (e.g., 'Getting Started', 'How to Use Feature X')",
@@ -344,6 +352,8 @@ IMPORTANT:
 - If meeting discusses existing wiki content without changes, set has_updates to false
 - Be specific about what sections to update
 - Make content concise and clear
+- Update the Overview if the meeting discusses project purpose, goals, scope, or high-level objectives
+- Overview content should be a complete paragraph (2-4 sentences), not bullet points
 
 Provide ONLY the JSON response, no additional text.`;
 
@@ -383,6 +393,7 @@ Provide ONLY the JSON response, no additional text.`;
     // Validate and normalize the response
     return {
       has_updates: parsed.has_updates || false,
+      overview_updates: Array.isArray(parsed.overview_updates) ? parsed.overview_updates : [],
       user_guide_updates: Array.isArray(parsed.user_guide_updates) ? parsed.user_guide_updates : [],
       technical_updates: Array.isArray(parsed.technical_updates) ? parsed.technical_updates : [],
       changes_detected: Array.isArray(parsed.changes_detected) ? parsed.changes_detected : [],

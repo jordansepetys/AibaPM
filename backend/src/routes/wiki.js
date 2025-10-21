@@ -235,6 +235,7 @@ router.post('/:projectId/apply-suggestions', async (req, res, next) => {
     const { suggestions, meetingId } = req.body;
 
     console.log(`📝 Applying wiki suggestions for project ${projectId}, meeting ${meetingId}`);
+    console.log(`   Overview updates: ${suggestions?.overview_updates?.length || 0}`);
     console.log(`   User guide updates: ${suggestions?.user_guide_updates?.length || 0}`);
     console.log(`   Technical updates: ${suggestions?.technical_updates?.length || 0}`);
 
@@ -369,6 +370,13 @@ function generateMeetingSection(summary, meetingId) {
 function applyWikiSuggestions(currentWiki, suggestions) {
   let updatedWiki = currentWiki;
 
+  // Apply overview updates
+  if (suggestions.overview_updates && suggestions.overview_updates.length > 0) {
+    for (const update of suggestions.overview_updates) {
+      updatedWiki = applyOverviewUpdate(updatedWiki, update);
+    }
+  }
+
   // Apply user guide updates
   if (suggestions.user_guide_updates && suggestions.user_guide_updates.length > 0) {
     for (const update of suggestions.user_guide_updates) {
@@ -384,6 +392,41 @@ function applyWikiSuggestions(currentWiki, suggestions) {
   }
 
   return updatedWiki;
+}
+
+/**
+ * Apply overview update to wiki
+ * Overview section is always at the top (## Overview)
+ */
+function applyOverviewUpdate(wiki, update) {
+  const overviewHeader = '## Overview';
+  const overviewIndex = wiki.indexOf(overviewHeader);
+
+  if (overviewIndex !== -1) {
+    // Find the end of the overview section (next ## heading or ---)
+    let sectionEnd = wiki.indexOf('\n## ', overviewIndex + 1);
+    if (sectionEnd === -1) {
+      sectionEnd = wiki.indexOf('\n---', overviewIndex + 1);
+    }
+    if (sectionEnd === -1) {
+      sectionEnd = wiki.length;
+    }
+
+    // Replace the overview content
+    const newOverview = `${overviewHeader}\n${update.content}\n`;
+    wiki = wiki.slice(0, overviewIndex) + newOverview + wiki.slice(sectionEnd);
+    console.log(`Updated project overview (action: ${update.action})`);
+  } else {
+    // Overview section doesn't exist, add it at the top after the title
+    const titleEnd = wiki.indexOf('\n', wiki.indexOf('# '));
+    if (titleEnd !== -1) {
+      const newOverview = `\n${overviewHeader}\n${update.content}\n`;
+      wiki = wiki.slice(0, titleEnd + 1) + newOverview + wiki.slice(titleEnd + 1);
+      console.log(`Created new overview section`);
+    }
+  }
+
+  return wiki;
 }
 
 /**

@@ -8,6 +8,7 @@ const AIChat = ({ isSidebar = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [aiModel, setAiModel] = useState('Loading...');
   const [activeSkills, setActiveSkills] = useState([]);
   const [disableSkills, setDisableSkills] = useState(false);
@@ -28,6 +29,27 @@ const AIChat = ({ isSidebar = false }) => {
   useEffect(() => {
     loadChatHistory();
   }, [currentProjectId]);
+
+  // Check for meeting context and pre-populate message
+  useEffect(() => {
+    const meetingContextStr = localStorage.getItem('chatMeetingContext');
+    if (meetingContextStr) {
+      try {
+        const meetingContext = JSON.parse(meetingContextStr);
+        const meetingDate = new Date(meetingContext.meetingDate).toLocaleDateString();
+        const suggestedMessage = `Let's discuss the "${meetingContext.meetingTitle}" meeting from ${meetingDate}. What insights can you provide?`;
+        setInputMessage(suggestedMessage);
+
+        // Clear the flag so we don't do this again
+        localStorage.removeItem('chatMeetingContext');
+
+        // Focus the input field
+        setTimeout(() => inputRef.current?.focus(), 300);
+      } catch (error) {
+        console.error('Error parsing meeting context:', error);
+      }
+    }
+  }, [currentProjectId]); // Re-run when project changes
 
   // Fetch AI model info on mount
   useEffect(() => {
@@ -186,7 +208,7 @@ const AIChat = ({ isSidebar = false }) => {
 
         // Send to backend for transcription
         try {
-          setIsLoading(true);
+          setIsTranscribing(true);
           const result = await chatAPI.transcribeVoice(audioBlob);
 
           // Append transcribed text to input (or replace if empty)
@@ -195,12 +217,12 @@ const AIChat = ({ isSidebar = false }) => {
             return prev + separator + result.text;
           });
 
-          setIsLoading(false);
+          setIsTranscribing(false);
           inputRef.current?.focus();
         } catch (error) {
           console.error('Transcription error:', error);
           setStatus('error', 'Voice transcription failed: ' + error.message);
-          setIsLoading(false);
+          setIsTranscribing(false);
         }
       };
 
@@ -561,7 +583,7 @@ const AIChat = ({ isSidebar = false }) => {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message... (Shift+Enter for new line)"
-            disabled={isLoading || isRecordingVoice}
+            disabled={isLoading || isRecordingVoice || isTranscribing}
             style={{
               flex: 1,
               padding: '12px',
@@ -578,7 +600,7 @@ const AIChat = ({ isSidebar = false }) => {
           />
           <button
             onClick={isRecordingVoice ? stopVoiceInput : startVoiceInput}
-            disabled={isLoading}
+            disabled={isLoading || isTranscribing}
             style={{
               padding: '12px 20px',
               fontSize: '20px',
@@ -588,35 +610,35 @@ const AIChat = ({ isSidebar = false }) => {
               color: isRecordingVoice ? 'white' : '#495057',
               border: isRecordingVoice ? 'none' : '1px solid #ced4da',
               borderRadius: '8px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1,
+              cursor: (isLoading || isTranscribing) ? 'not-allowed' : 'pointer',
+              opacity: (isLoading || isTranscribing) ? 0.6 : 1,
               whiteSpace: 'nowrap',
               transition: 'all 0.3s ease',
               animation: isRecordingVoice ? 'pulse 1.5s infinite' : 'none',
             }}
             title={isRecordingVoice ? 'Stop recording' : 'Record voice message'}
           >
-            {isRecordingVoice ? '⏹️' : '🎤'}
+            {isTranscribing ? '⏳' : (isRecordingVoice ? '⏹️' : '🎤')}
           </button>
           <button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || isLoading || isRecordingVoice}
+            disabled={!inputMessage.trim() || isLoading || isRecordingVoice || isTranscribing}
             style={{
               padding: '12px 24px',
               fontSize: '14px',
               fontWeight: 'bold',
-              background: !inputMessage.trim() || isLoading || isRecordingVoice
+              background: !inputMessage.trim() || isLoading || isRecordingVoice || isTranscribing
                 ? '#6c757d'
                 : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              cursor: !inputMessage.trim() || isLoading || isRecordingVoice ? 'not-allowed' : 'pointer',
-              opacity: !inputMessage.trim() || isLoading || isRecordingVoice ? 0.6 : 1,
+              cursor: !inputMessage.trim() || isLoading || isRecordingVoice || isTranscribing ? 'not-allowed' : 'pointer',
+              opacity: !inputMessage.trim() || isLoading || isRecordingVoice || isTranscribing ? 0.6 : 1,
               whiteSpace: 'nowrap',
             }}
           >
-            {isLoading ? '⏳ Thinking...' : '📤 Send'}
+            {isTranscribing ? '⏳ Transcribing...' : (isLoading ? '⏳ Thinking...' : '📤 Send')}
           </button>
         </div>
         <div style={{
