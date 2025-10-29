@@ -17,13 +17,26 @@ const MeetingDetails = () => {
 
   useEffect(() => {
     if (selectedMeeting) {
-      // Reset state when switching meetings
+      console.log('🔄 Meeting changed to:', selectedMeeting.id, selectedMeeting.title);
+
+      // IMMEDIATELY reset ALL state when switching meetings
       setTranscript('');
       setSummary(null);
       setMetadata(null);
       setIsProcessing(false);
       setProcessingMessage('');
+      setActiveTab('summary'); // Reset to summary tab
+
+      // Then load new content
       loadMeetingContent();
+    } else {
+      // No meeting selected - clear everything
+      console.log('🔄 No meeting selected, clearing state');
+      setTranscript('');
+      setSummary(null);
+      setMetadata(null);
+      setIsProcessing(false);
+      setProcessingMessage('');
     }
   }, [selectedMeeting?.id]); // Only re-run when meeting ID changes
 
@@ -39,6 +52,22 @@ const MeetingDetails = () => {
       try {
         const response = await meetingsAPI.getById(selectedMeeting.id);
         const meeting = response.meeting || response;
+
+        // Update the store with latest meeting data
+        updateMeeting(meeting.id, meeting);
+
+        // Check for error state (transcript_path starts with "ERROR:")
+        if (meeting.transcript_path && meeting.transcript_path.startsWith('ERROR:')) {
+          const errorMessage = meeting.transcript_path.substring(7); // Remove "ERROR: " prefix
+          console.error('❌ Meeting processing failed:', errorMessage);
+          setIsProcessing(false);
+          setProcessingMessage(`❌ Processing failed: ${errorMessage}`);
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          return;
+        }
 
         // Check if processing is complete
         const hasTranscript = !!meeting.transcript_path;
@@ -114,6 +143,15 @@ const MeetingDetails = () => {
 
       console.log('📥 Loaded meeting:', fullMeeting);
 
+      // Check for error state
+      if (fullMeeting.transcript_path && fullMeeting.transcript_path.startsWith('ERROR:')) {
+        const errorMessage = fullMeeting.transcript_path.substring(7);
+        console.error('❌ Meeting has error status:', errorMessage);
+        setIsProcessing(false);
+        setProcessingMessage(`❌ Processing failed: ${errorMessage}`);
+        return;
+      }
+
       // Load transcript
       if (fullMeeting.transcript_path) {
         console.log('📄 Loading transcript from:', fullMeeting.transcript_path);
@@ -149,15 +187,26 @@ const MeetingDetails = () => {
     if (!selectedMeeting) return;
 
     try {
-      setStatus('processing', 'Reprocessing meeting...');
+      setStatus('processing', 'Starting reprocessing...');
       await meetingsAPI.reprocess(selectedMeeting.id);
 
-      // Reload meeting data after a delay
-      setTimeout(async () => {
-        await loadMeetingContent();
-        setStatus('success', 'Meeting reprocessed successfully!');
-        setTimeout(() => setStatus('idle'), 3000);
-      }, 2000);
+      // Clear existing content to show processing state
+      setTranscript('');
+      setSummary(null);
+      setIsProcessing(true);
+      setProcessingMessage('🎙️ Re-transcribing audio...');
+
+      // Update the meeting in store to clear paths, which will trigger auto-polling
+      updateMeeting(selectedMeeting.id, {
+        ...selectedMeeting,
+        transcript_path: null,
+        summary_path: null
+      });
+
+      setStatus('success', 'Reprocessing started! Watch for updates...');
+      setTimeout(() => setStatus('idle'), 3000);
+
+      // The auto-polling useEffect will handle checking for completion
     } catch (error) {
       setStatus('error', error.message);
     }
@@ -262,10 +311,12 @@ const MeetingDetails = () => {
       </div>
 
       {/* Processing Status Banner */}
-      {isProcessing && (
+      {(isProcessing || processingMessage) && (
         <div style={{
           padding: '15px 20px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: processingMessage.startsWith('❌')
+            ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           fontSize: '14px',
           fontWeight: '500',
@@ -274,14 +325,16 @@ const MeetingDetails = () => {
           gap: '10px',
           borderBottom: '1px solid #dee2e6'
         }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            border: '3px solid rgba(255,255,255,0.3)',
-            borderTop: '3px solid white',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
+          {!processingMessage.startsWith('❌') && (
+            <div style={{
+              width: '20px',
+              height: '20px',
+              border: '3px solid rgba(255,255,255,0.3)',
+              borderTop: '3px solid white',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+          )}
           {processingMessage}
           <style>{`
             @keyframes spin {

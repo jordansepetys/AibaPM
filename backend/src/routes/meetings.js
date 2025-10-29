@@ -263,6 +263,25 @@ async function processMeeting(meetingId, audioPath, title, date) {
     console.log(`=== Meeting ${meetingId} processing complete ===\n`);
   } catch (error) {
     console.error(`Failed to process meeting ${meetingId}:`, error);
+
+    // Mark the meeting with an error by setting transcript_path to an error marker
+    // This prevents infinite polling on the frontend
+    try {
+      const meeting = getMeetingById.get(meetingId);
+      updateMeeting.run(
+        meeting.title,
+        meeting.date,
+        0, // duration
+        meeting.audio_path,
+        `ERROR: ${error.message}`, // transcript_path used as error marker
+        null, // summary_path
+        meetingId
+      );
+      console.error(`Marked meeting ${meetingId} with error status`);
+    } catch (updateError) {
+      console.error(`Failed to mark meeting ${meetingId} with error:`, updateError);
+    }
+
     throw error;
   }
 }

@@ -16,6 +16,8 @@ const AudioRecorder = () => {
     clearAudioChunks,
     setStatus,
     addMeeting,
+    selectMeeting,
+    setActiveTab,
   } = useStore();
 
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -143,7 +145,7 @@ const AudioRecorder = () => {
 
       // Validate we have audio data
       if (currentAudioChunks.length === 0) {
-        throw new Error('No audio data recorded. Please try recording again.');
+        throw new Error('No audio data recorded. Please check your microphone and try recording again.');
       }
 
       // Create blob from audio chunks
@@ -157,25 +159,37 @@ const AudioRecorder = () => {
         chunksCount: currentAudioChunks.length,
       });
 
-      // Validate blob size
+      // Validate blob size - must be at least 1KB to contain actual audio
       if (audioBlob.size === 0) {
-        throw new Error('Audio recording is empty. Please try recording again.');
+        throw new Error('Audio recording is empty. Please check your microphone and try recording again.');
+      }
+
+      if (audioBlob.size < 1000) {
+        throw new Error('Audio recording is too small (less than 1KB). Please check your microphone is plugged in and working.');
       }
 
       // Upload to backend
-      const meeting = await meetingsAPI.create(audioBlob, selectedProjectId, meetingTitle);
+      const response = await meetingsAPI.create(audioBlob, selectedProjectId, meetingTitle);
+      const meeting = response.meeting || response;
 
       console.log('✅ Recording uploaded:', meeting);
+      console.log('📍 Meeting ID:', meeting.id);
+      console.log('📍 Meeting title:', meeting.title);
 
-      // Add to store
+      // Add to store and automatically select it
       addMeeting(meeting);
+      console.log('🎯 Auto-selecting new meeting:', meeting.id);
+      selectMeeting(meeting);
+
+      // Switch to meetings tab so user can see processing
+      setActiveTab('meetings');
 
       // Clear form and reset state
       setMeetingTitle('');
       clearAudioChunks();
       setRecordingDuration(0); // Reset timer
 
-      setStatus('success', 'Recording uploaded! Processing in background...');
+      setStatus('success', 'Recording uploaded! Processing started...');
 
       // Clear success message after 5 seconds
       setTimeout(() => {

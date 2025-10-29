@@ -8,6 +8,7 @@ const MeetingsList = () => {
     projects,
     selectedMeeting,
     selectMeeting,
+    updateMeeting,
     deleteMeeting,
     setStatus,
   } = useStore();
@@ -29,6 +30,11 @@ const MeetingsList = () => {
       setStatus('processing', 'Loading meeting details...');
       const response = await meetingsAPI.getById(meeting.id);
       const fullMeeting = response.meeting || response;
+
+      // Update the meeting in the store with latest data
+      updateMeeting(fullMeeting.id, fullMeeting);
+
+      // Select the meeting
       selectMeeting(fullMeeting);
       setStatus('idle');
     } catch (error) {

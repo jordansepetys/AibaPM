@@ -59,5 +59,8 @@ pnpm-debug.log*
 # Claude Code
 .claude/settings.local.json
 
+# Internal Planning
+DATA_LIFECYCLE_PLAN.md
+
 # OS
 Thumbs.db

@@ -65,7 +65,10 @@ const useStore = create((set, get) => ({
     selectedMeeting: state.selectedMeeting?.id === id ? null : state.selectedMeeting
   })),
 
-  selectMeeting: (meeting) => set({ selectedMeeting: meeting }),
+  selectMeeting: (meeting) => {
+    console.log('🏪 Store: selectMeeting called with:', meeting?.id, meeting?.title);
+    set({ selectedMeeting: meeting });
+  },
 
   // Actions - Recording
   startRecording: (mediaRecorder) => set({
