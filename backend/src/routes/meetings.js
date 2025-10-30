@@ -144,6 +144,21 @@ router.post('/:id/reprocess', async (req, res, next) => {
       return res.status(400).json({ error: 'No audio file associated with this meeting' });
     }
 
+    // Clear old error status and paths so frontend shows processing state
+    console.log(`Clearing error status for meeting ${meeting.id} before reprocessing...`);
+    updateMeeting.run(
+      meeting.title,
+      meeting.date,
+      0, // duration
+      meeting.audio_path,
+      null, // Clear transcript_path (removes ERROR status)
+      null, // Clear summary_path
+      meeting.id
+    );
+
+    // Get updated meeting to return
+    const clearedMeeting = getMeetingById.get(parseInt(id, 10));
+
     // Start reprocessing
     processMeeting(meeting.id, meeting.audio_path, meeting.title, meeting.date).catch(error => {
       console.error(`Error reprocessing meeting ${meeting.id}:`, error);
@@ -151,7 +166,7 @@ router.post('/:id/reprocess', async (req, res, next) => {
 
     res.json({
       message: 'Meeting reprocessing started',
-      meeting,
+      meeting: clearedMeeting, // Return meeting with cleared status
     });
   } catch (error) {
     next(error);

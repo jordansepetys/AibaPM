@@ -187,18 +187,25 @@ const MeetingDetails = () => {
     if (!selectedMeeting) return;
 
     try {
-      setStatus('processing', 'Starting reprocessing...');
-      await meetingsAPI.reprocess(selectedMeeting.id);
+      console.log('🔄 Starting reprocess for meeting:', selectedMeeting.id);
 
-      // Clear existing content to show processing state
+      // Clear existing content and error state IMMEDIATELY
       setTranscript('');
       setSummary(null);
+      setMetadata(null);
       setIsProcessing(true);
-      setProcessingMessage('🎙️ Re-transcribing audio...');
+      setProcessingMessage('🔄 Reprocessing started - transcribing audio...');
+      setStatus('processing', 'Starting reprocessing...');
 
-      // Update the meeting in store to clear paths, which will trigger auto-polling
+      // Call reprocess API (backend clears ERROR status in database)
+      const response = await meetingsAPI.reprocess(selectedMeeting.id);
+      const clearedMeeting = response.meeting || response;
+
+      console.log('✅ Reprocess API call successful, meeting status cleared');
+
+      // Update the meeting in store with cleared status from backend
       updateMeeting(selectedMeeting.id, {
-        ...selectedMeeting,
+        ...clearedMeeting,
         transcript_path: null,
         summary_path: null
       });
@@ -208,7 +215,10 @@ const MeetingDetails = () => {
 
       // The auto-polling useEffect will handle checking for completion
     } catch (error) {
+      console.error('❌ Reprocess failed:', error);
       setStatus('error', error.message);
+      setIsProcessing(false);
+      setProcessingMessage('');
     }
   };
 
