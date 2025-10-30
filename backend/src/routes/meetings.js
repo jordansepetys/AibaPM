@@ -187,80 +187,105 @@ router.delete('/:id', (req, res, next) => {
 });
 
 /**
+ * Wrap async function with timeout
+ * @param {Promise} promise - Promise to wrap
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @param {string} operationName - Name of operation for error message
+ * @returns {Promise} Promise that rejects if timeout is exceeded
+ */
+function withTimeout(promise, timeoutMs, operationName) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
+    ),
+  ]);
+}
+
+/**
  * Background processing function
  * Handles transcription, analysis, and indexing
  */
 async function processMeeting(meetingId, audioPath, title, date) {
+  const PROCESSING_TIMEOUT = 10 * 60 * 1000; // 10 minutes total timeout
+
   try {
-    console.log(`\n=== Processing meeting ${meetingId} ===`);
+    console.log(`\n=== Processing meeting ${meetingId} (timeout: ${PROCESSING_TIMEOUT / 1000}s) ===`);
 
-    // Step 1: Transcribe audio (with automatic chunking for large files)
-    console.log('Step 1: Transcribing audio...');
-    const transcription = await transcribeWithRetry(audioPath, meetingId);
+    // Wrap the entire processing in a timeout
+    await withTimeout(
+      (async () => {
+        // Step 1: Transcribe audio (with automatic chunking for large files)
+        console.log('Step 1: Transcribing audio...');
+        const transcription = await transcribeWithRetry(audioPath, meetingId);
 
-    // Step 2: Save transcript
-    console.log('Step 2: Saving transcript...');
-    const transcriptPaths = await saveTranscript(
-      transcription.text,
-      meetingId,
-      {
-        title,
-        date,
-        duration: transcription.duration,
-        segments: transcription.segments,
-      }
+        // Step 2: Save transcript
+        console.log('Step 2: Saving transcript...');
+        const transcriptPaths = await saveTranscript(
+          transcription.text,
+          meetingId,
+          {
+            title,
+            date,
+            duration: transcription.duration,
+            segments: transcription.segments,
+          }
+        );
+
+        // Step 3: Analyze transcript
+        console.log('Step 3: Analyzing meeting...');
+        const analysis = await analyzeMeeting(transcription.text);
+
+        // Step 4: Save summary
+        console.log('Step 4: Saving summary...');
+        const summaryPath = await saveSummary(analysis, meetingId);
+
+        // Step 5: Update meeting record
+        console.log('Step 5: Updating meeting record...');
+        const meeting = getMeetingById.get(meetingId);
+        updateMeeting.run(
+          meeting.title,
+          meeting.date,
+          Math.floor(transcription.duration || 0),
+          meeting.audio_path,
+          transcriptPaths.txtPath,
+          summaryPath,
+          meetingId
+        );
+
+        // Step 6: Save metadata
+        console.log('Step 6: Saving metadata...');
+        const existingMetadata = getMeetingMetadata.get(meetingId);
+
+        // New format: discussion_topics, context, detailed_discussion
+        // Old format for backwards compatibility: risks, open_questions (empty arrays)
+        if (existingMetadata) {
+          updateMeetingMetadata.run(
+            JSON.stringify(analysis.key_decisions || []),
+            JSON.stringify(analysis.action_items || []),
+            JSON.stringify([]), // risks - deprecated
+            JSON.stringify([]), // open_questions - deprecated
+            meetingId
+          );
+        } else {
+          createMeetingMetadata.run(
+            meetingId,
+            JSON.stringify(analysis.key_decisions || []),
+            JSON.stringify(analysis.action_items || []),
+            JSON.stringify([]), // risks - deprecated
+            JSON.stringify([])  // open_questions - deprecated
+          );
+        }
+
+        // Step 7: Build search index
+        console.log('Step 7: Building search index...');
+        await buildSearchIndex(meetingId, transcription.text, analysis);
+
+        console.log(`=== Meeting ${meetingId} processing complete ===\n`);
+      })(),
+      PROCESSING_TIMEOUT,
+      `Meeting ${meetingId} processing`
     );
-
-    // Step 3: Analyze transcript
-    console.log('Step 3: Analyzing meeting...');
-    const analysis = await analyzeMeeting(transcription.text);
-
-    // Step 4: Save summary
-    console.log('Step 4: Saving summary...');
-    const summaryPath = await saveSummary(analysis, meetingId);
-
-    // Step 5: Update meeting record
-    console.log('Step 5: Updating meeting record...');
-    const meeting = getMeetingById.get(meetingId);
-    updateMeeting.run(
-      meeting.title,
-      meeting.date,
-      Math.floor(transcription.duration || 0),
-      meeting.audio_path,
-      transcriptPaths.txtPath,
-      summaryPath,
-      meetingId
-    );
-
-    // Step 6: Save metadata
-    console.log('Step 6: Saving metadata...');
-    const existingMetadata = getMeetingMetadata.get(meetingId);
-
-    // New format: discussion_topics, context, detailed_discussion
-    // Old format for backwards compatibility: risks, open_questions (empty arrays)
-    if (existingMetadata) {
-      updateMeetingMetadata.run(
-        JSON.stringify(analysis.key_decisions || []),
-        JSON.stringify(analysis.action_items || []),
-        JSON.stringify([]), // risks - deprecated
-        JSON.stringify([]), // open_questions - deprecated
-        meetingId
-      );
-    } else {
-      createMeetingMetadata.run(
-        meetingId,
-        JSON.stringify(analysis.key_decisions || []),
-        JSON.stringify(analysis.action_items || []),
-        JSON.stringify([]), // risks - deprecated
-        JSON.stringify([])  // open_questions - deprecated
-      );
-    }
-
-    // Step 7: Build search index
-    console.log('Step 7: Building search index...');
-    await buildSearchIndex(meetingId, transcription.text, analysis);
-
-    console.log(`=== Meeting ${meetingId} processing complete ===\n`);
   } catch (error) {
     console.error(`Failed to process meeting ${meetingId}:`, error);
 
