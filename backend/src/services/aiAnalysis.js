@@ -80,21 +80,23 @@ function checkAPIQuotaError(error, provider = 'openai') {
 
 const ANALYSIS_PROMPT = `You are an AI assistant that captures detailed meeting discussions for long-term memory and reference.
 
-Your goal is to preserve what was discussed in detail, not just extract action items. This is a conversation journal.
+Your goal is to preserve what was discussed in detail, not just extract action items. This is a conversation journal that should capture nuances, options discussed, and trade-offs considered.
 
 Analyze the following meeting transcript and provide a structured summary in JSON format with these fields:
 
 1. "overview": A 2-3 sentence high-level summary of what the meeting covered (string)
 2. "discussion_topics": An array of topic strings (e.g., ["Feature planning", "Technical architecture", "User feedback"]). Each item should be a simple string, not an object.
-3. "detailed_discussion": An array of paragraph strings, each being 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning. Each entry must be a complete paragraph string, NOT an object.
-4. "key_decisions": An array of decision strings describing concrete decisions made during the meeting (include empty array if none). Each item should be a simple string, not an object.
+3. "detailed_discussion": An array of paragraph strings, each being 2-4 sentences explaining what was talked about, the context, different viewpoints mentioned, and conclusions reached. Be thorough - capture the conversation flow and reasoning. INCLUDE OPTIONS THAT WERE DISCUSSED (even if not chosen), TRADE-OFFS CONSIDERED, and CONCERNS RAISED. Each entry must be a complete paragraph string, NOT an object.
+4. "key_decisions": An array of decision strings describing concrete decisions made during the meeting (include empty array if none). For each decision, include WHY it was made if discussed. Each item should be a simple string, not an object.
 5. "action_items": An array of objects with "task" and "owner" fields for specific follow-up actions (include empty array if none). This is the ONLY field that should contain objects.
-6. "technical_details": An array of technical detail strings - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY in each string. Each item should be a simple string, not an object.
+6. "technical_details": An array of technical detail strings - implementations, technologies, APIs, approaches, code details, etc. Include both what was discussed and WHY in each string. INCLUDE ALTERNATIVES THAT WERE CONSIDERED and reasons they were/weren't chosen. Each item should be a simple string, not an object.
 7. "context": A paragraph string providing background context - why this meeting happened, what led to these discussions, relevant prior decisions or history mentioned
 
 IMPORTANT: All fields should contain simple strings in their arrays, EXCEPT action_items which contains objects with task/owner. Do not use objects for discussion_topics, detailed_discussion, key_decisions, or technical_details.
 
 IMPORTANT: Focus on capturing WHAT WAS SAID and the reasoning/thought process, not on identifying gaps or problems. This is for future reference to remember what was discussed.
+
+CAPTURE NUANCE: Include options discussed, alternatives considered, trade-offs mentioned, concerns raised, and reasoning behind decisions - not just final conclusions.
 
 Transcript:
 ---
@@ -353,7 +355,10 @@ Provide ONLY the JSON response, no additional text.`;
 export const generateWikiUpdateSuggestions = async (currentWiki, transcript, summary, projectName) => {
   const backend = AI_BACKEND;
 
-  const prompt = `You are a technical documentation assistant. Analyze a meeting transcript and suggest updates to a project wiki.
+  // Use full transcript for better context (modern LLMs handle 100k+ tokens)
+  const fullTranscript = transcript;
+
+  const prompt = `You are a technical documentation assistant. Analyze a meeting transcript and suggest detailed wiki updates that capture nuances, options discussed, and trade-offs.
 
 Current Wiki Content:
 ---
@@ -363,17 +368,21 @@ ${currentWiki}
 Meeting Summary:
 ${JSON.stringify(summary, null, 2)}
 
-Meeting Transcript:
-${transcript.substring(0, 3000)} ${transcript.length > 3000 ? '...(truncated)' : ''}
+Full Meeting Transcript:
+---
+${fullTranscript}
+---
 
 Your task:
 1. Identify NEW information that should be added to the wiki
 2. Identify CHANGES to existing information (e.g., switching from one technology to another)
-3. Structure suggestions into:
+3. **CAPTURE NUANCES**: Include options discussed, trade-offs considered, reasons for decisions
+4. **CAPTURE CONTEXT**: Include "why" decisions were made, alternative approaches considered
+5. Structure suggestions into:
    - Project Overview (purpose, goals, what the project does, main features)
    - User Guide sections (how-to, basic usage, getting started)
    - Technical Documentation sections (architecture decisions, implementation details, APIs)
-4. Generate a changelog entry if there are significant changes
+6. Generate a changelog entry if there are significant changes
 
 Respond in JSON format:
 {
@@ -381,23 +390,23 @@ Respond in JSON format:
   "overview_updates": [
     {
       "action": "add" or "update" or "replace",
-      "content": "Brief description of the project, its purpose, goals, and main features",
-      "reason": "why this update is needed (e.g., 'Project goals clarified in meeting', 'Purpose expanded to include X')"
+      "content": "Detailed description including nuances, context, and reasoning from the discussion",
+      "reason": "why this update is needed, referencing specific parts of the meeting"
     }
   ],
   "user_guide_updates": [
     {
       "section": "section name (e.g., 'Getting Started', 'How to Use Feature X')",
       "action": "add" or "update" or "replace",
-      "content": "markdown content to add/update",
+      "content": "Detailed markdown content capturing discussion nuances, options considered, and rationale",
       "reason": "why this update is needed"
     }
   ],
   "technical_updates": [
     {
-      "section": "section name (e.g., 'Architecture', 'API Design', 'Technology Stack')",
+      "section": "section name (e.g., 'Architecture', 'API Design', 'Technology Stack', 'Design Decisions')",
       "action": "add" or "update" or "replace",
-      "content": "markdown content to add/update",
+      "content": "Detailed markdown content including:\n- What was decided\n- Options that were discussed\n- Trade-offs considered\n- Reasons for the decision\n- Any concerns or caveats mentioned",
       "reason": "why this update is needed",
       "is_change": true/false (if replacing old technology/approach)
     }
@@ -406,19 +415,22 @@ Respond in JSON format:
     {
       "from": "old value (e.g., 'SignalR')",
       "to": "new value (e.g., 'PostMessage')",
-      "context": "what changed (e.g., 'Communication method')"
+      "context": "what changed and why (include reasoning from discussion)"
     }
   ],
-  "changelog_entry": "Brief changelog note for this meeting (e.g., 'Updated communication from SignalR to PostMessage')"
+  "changelog_entry": "Detailed changelog note capturing key decisions and context"
 }
 
-IMPORTANT:
+IMPORTANT - CAPTURE NUANCE:
+- DO NOT oversimplify - capture the richness of the discussion
+- Include options that were considered but NOT chosen (with reasons)
+- Include trade-offs, concerns, and caveats discussed
+- Include "why" and "how" context, not just "what"
+- If multiple approaches were discussed, document all of them with pros/cons
+- Include specific technical details, examples, and reasoning mentioned
+- Be thorough and detailed - this is a knowledge base, not a summary
 - Only suggest updates for information actually discussed in the meeting
-- If meeting discusses existing wiki content without changes, set has_updates to false
-- Be specific about what sections to update
-- Make content concise and clear
 - Update the Overview if the meeting discusses project purpose, goals, scope, or high-level objectives
-- Overview content should be a complete paragraph (2-4 sentences), not bullet points
 
 Provide ONLY the JSON response, no additional text.`;
 
@@ -432,7 +444,7 @@ Provide ONLY the JSON response, no additional text.`;
       }
       const message = await client.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 3000,
+        max_tokens: 8000, // Increased from 3000 to capture detailed nuances and multiple updates
         messages: [{ role: 'user', content: prompt }],
       });
       suggestions = message.content[0].text;
@@ -444,11 +456,11 @@ Provide ONLY the JSON response, no additional text.`;
       const completion = await client.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: 'You are a technical documentation assistant that analyzes meetings and suggests wiki updates.' },
+          { role: 'system', content: 'You are a technical documentation assistant that analyzes meetings and suggests detailed wiki updates with nuances, trade-offs, and context.' },
           { role: 'user', content: prompt },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 3000,
+        max_tokens: 8000, // Increased from 3000 to capture detailed nuances and multiple updates
       });
       suggestions = completion.choices[0].message.content;
     }
