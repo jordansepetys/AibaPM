@@ -203,7 +203,15 @@ export const processLargeAudio = async (audioPath, meetingId) => {
 
     // Split into chunks
     console.log('Step 3: Splitting into chunks...');
-    const chunks = await splitIntoChunks(wavPath, durationSeconds);
+
+    // For very large files (50MB+), use smaller chunks (5 min instead of 10 min)
+    // to improve reliability and reduce chance of network timeouts
+    const chunkDuration = fileSizeMB >= 50 ? 300 : CHUNK_DURATION_SECONDS; // 5 min or 10 min
+    if (fileSizeMB >= 50) {
+      console.log(`⚠️  Very large file (${fileSizeMB.toFixed(2)}MB) - using ${chunkDuration / 60} minute chunks for better reliability`);
+    }
+
+    const chunks = await splitIntoChunks(wavPath, durationSeconds, chunkDuration);
 
     console.log(`\n=== Created ${chunks.length} chunks ===`);
 

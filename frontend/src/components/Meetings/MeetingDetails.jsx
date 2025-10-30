@@ -46,7 +46,7 @@ const MeetingDetails = () => {
 
     let pollInterval = null;
     let pollCount = 0;
-    const MAX_POLLS = 400; // Poll for max 20 minutes (400 * 3s = 1200s) to match backend adaptive timeout
+    const MAX_POLLS = 900; // Poll for max 45 minutes (900 * 3s = 2700s) to match backend adaptive timeout for huge files
 
     const checkProcessingStatus = async () => {
       try {

@@ -209,20 +209,33 @@ const transcribeChunks = async (chunks, progressCallback = null) => {
       }
 
       // For other errors, retry with exponential backoff
+      // Network errors (ECONNRESET, timeouts) need more retries with longer delays
       let retried = false;
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.log(`Retrying chunk ${chunk.index} in ${delay / 1000}s (attempt ${attempt}/2)...`);
+      const MAX_RETRIES = 5; // Increased from 2 for better reliability
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        // Exponential backoff: 5s, 10s, 20s, 40s, 80s
+        const delay = Math.pow(2, attempt) * 2500;
+        console.log(`Retrying chunk ${chunk.index} in ${delay / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
         try {
           const transcription = await transcribeSingleFile(chunk.path);
           results.push({ chunk, transcription });
-          console.log(`Chunk ${chunk.index} transcribed on retry ${attempt}`);
+          console.log(`✅ Chunk ${chunk.index} transcribed successfully on retry ${attempt}`);
           retried = true;
           break;
         } catch (retryError) {
-          console.error(`Retry ${attempt} failed:`, retryError.message);
+          const isNetworkError = retryError.message.includes('Connection error') ||
+                                  retryError.message.includes('ECONNRESET') ||
+                                  retryError.message.includes('timeout');
+
+          console.error(`❌ Retry ${attempt} failed:`, retryError.message);
+
+          if (isNetworkError) {
+            console.warn(`⚠️  Network error detected - will retry with longer delay`);
+          }
+
           if (retryError.message === 'PAYLOAD_TOO_LARGE') {
             retryWithSmallerChunks = true;
             break;
@@ -231,7 +244,7 @@ const transcribeChunks = async (chunks, progressCallback = null) => {
       }
 
       if (!retried && !retryWithSmallerChunks) {
-        throw new Error(`Failed to transcribe chunk ${chunk.index} after retries`);
+        throw new Error(`Failed to transcribe chunk ${chunk.index} after ${MAX_RETRIES} retries. This may be due to network instability or OpenAI API issues. Try again later or check your internet connection.`);
       }
 
       if (retryWithSmallerChunks) {

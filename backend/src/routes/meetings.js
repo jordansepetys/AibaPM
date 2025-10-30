@@ -217,15 +217,18 @@ async function calculateTimeout(audioPath) {
     // - Small files (<10MB): 5 minutes
     // - Medium files (10-30MB): 10 minutes
     // - Large files (30-50MB): 15 minutes
-    // - Very large files (>50MB): 20 minutes
+    // - Very large files (50-80MB): 30 minutes (with retries + smaller chunks)
+    // - Huge files (>80MB): 45 minutes
     if (fileSizeMB < 10) {
       return 5 * 60 * 1000; // 5 minutes
     } else if (fileSizeMB < 30) {
       return 10 * 60 * 1000; // 10 minutes
     } else if (fileSizeMB < 50) {
       return 15 * 60 * 1000; // 15 minutes
+    } else if (fileSizeMB < 80) {
+      return 30 * 60 * 1000; // 30 minutes (50MB+ files use 5-min chunks + 5 retries)
     } else {
-      return 20 * 60 * 1000; // 20 minutes
+      return 45 * 60 * 1000; // 45 minutes for huge files
     }
   } catch (error) {
     console.warn('Could not determine file size, using default timeout:', error.message);
