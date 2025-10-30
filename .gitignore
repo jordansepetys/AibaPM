@@ -28,6 +28,9 @@ pnpm-debug.log*
 # Database
 *.sqlite
 *.db
+*.db-journal
+*.db-shm
+*.db-wal
 
 # Storage (audio recordings, transcripts, summaries, skills - potentially large/sensitive)
 /backend/storage/audio/*
@@ -64,3 +67,4 @@ DATA_LIFECYCLE_PLAN.md
 
 # OS
 Thumbs.db
+nul
