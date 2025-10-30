@@ -203,11 +203,43 @@ function withTimeout(promise, timeoutMs, operationName) {
 }
 
 /**
+ * Calculate adaptive timeout based on file size
+ * @param {string} audioPath - Path to audio file
+ * @returns {number} Timeout in milliseconds
+ */
+async function calculateTimeout(audioPath) {
+  try {
+    const fs = await import('fs/promises');
+    const stats = await fs.stat(audioPath);
+    const fileSizeMB = stats.size / (1024 * 1024);
+
+    // Adaptive timeout based on file size:
+    // - Small files (<10MB): 5 minutes
+    // - Medium files (10-30MB): 10 minutes
+    // - Large files (30-50MB): 15 minutes
+    // - Very large files (>50MB): 20 minutes
+    if (fileSizeMB < 10) {
+      return 5 * 60 * 1000; // 5 minutes
+    } else if (fileSizeMB < 30) {
+      return 10 * 60 * 1000; // 10 minutes
+    } else if (fileSizeMB < 50) {
+      return 15 * 60 * 1000; // 15 minutes
+    } else {
+      return 20 * 60 * 1000; // 20 minutes
+    }
+  } catch (error) {
+    console.warn('Could not determine file size, using default timeout:', error.message);
+    return 10 * 60 * 1000; // Default 10 minutes
+  }
+}
+
+/**
  * Background processing function
  * Handles transcription, analysis, and indexing
  */
 async function processMeeting(meetingId, audioPath, title, date) {
-  const PROCESSING_TIMEOUT = 10 * 60 * 1000; // 10 minutes total timeout
+  // Calculate adaptive timeout based on file size
+  const PROCESSING_TIMEOUT = await calculateTimeout(audioPath);
 
   try {
     console.log(`\n=== Processing meeting ${meetingId} (timeout: ${PROCESSING_TIMEOUT / 1000}s) ===`);

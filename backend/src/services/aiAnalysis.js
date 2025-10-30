@@ -33,6 +33,51 @@ function getOpenAIClient() {
 }
 
 // Prompt template for meeting analysis
+/**
+ * Check for API quota/billing errors (OpenAI and Anthropic)
+ * @param {Error} error - Error object from API call
+ * @param {string} provider - 'openai' or 'anthropic'
+ * @returns {string|null} User-friendly error message or null
+ */
+function checkAPIQuotaError(error, provider = 'openai') {
+  if (provider === 'openai') {
+    // OpenAI error codes
+    if (error.status === 429) {
+      return 'OpenAI API rate limit exceeded. Please wait and try "Reprocess Meeting"';
+    }
+    if (error.status === 401) {
+      return 'OpenAI API key is invalid or expired. Check your .env file';
+    }
+    if (error.status === 402 || error.code === 'insufficient_quota') {
+      return 'OpenAI account has insufficient credits. Add credits at platform.openai.com/account/billing';
+    }
+    if (error.message && error.message.includes('quota')) {
+      return 'OpenAI API quota exceeded. Check usage at platform.openai.com/account/usage';
+    }
+  } else if (provider === 'anthropic') {
+    // Anthropic error codes
+    if (error.status === 429) {
+      return 'Anthropic API rate limit exceeded. Please wait and try "Reprocess Meeting"';
+    }
+    if (error.status === 401) {
+      return 'Anthropic API key is invalid or expired. Check your .env file';
+    }
+    if (error.status === 402 || error.message?.includes('credit')) {
+      return 'Anthropic account has insufficient credits. Check console.anthropic.com/account/billing';
+    }
+    if (error.message && error.message.includes('quota')) {
+      return 'Anthropic API quota exceeded. Check console.anthropic.com/account/usage';
+    }
+  }
+
+  // Generic billing/quota check
+  if (error.message && (error.message.includes('billing') || error.message.includes('payment'))) {
+    return `${provider === 'openai' ? 'OpenAI' : 'Anthropic'} billing issue detected. Please check your account`;
+  }
+
+  return null;
+}
+
 const ANALYSIS_PROMPT = `You are an AI assistant that captures detailed meeting discussions for long-term memory and reference.
 
 Your goal is to preserve what was discussed in detail, not just extract action items. This is a conversation journal.
@@ -110,23 +155,33 @@ const analyzeWithClaude = async (transcript) => {
     throw new Error('Anthropic API key not configured');
   }
 
-  const prompt = ANALYSIS_PROMPT.replace('{transcript}', transcript);
+  try {
+    const prompt = ANALYSIS_PROMPT.replace('{transcript}', transcript);
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-  });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
 
-  const response = message.content[0].text;
-  console.log('Claude analysis completed');
+    const response = message.content[0].text;
+    console.log('Claude analysis completed');
 
-  return response;
+    return response;
+  } catch (error) {
+    // Check for API quota/billing issues
+    const quotaError = checkAPIQuotaError(error, 'anthropic');
+    if (quotaError) {
+      console.error('❌ Anthropic API Error:', quotaError);
+      throw new Error(quotaError);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -140,28 +195,38 @@ const analyzeWithGPT = async (transcript) => {
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = ANALYSIS_PROMPT.replace('{transcript}', transcript);
+  try {
+    const prompt = ANALYSIS_PROMPT.replace('{transcript}', transcript);
 
-  const completion = await client.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a meeting documentation assistant that captures detailed discussions for long-term reference. Return structured JSON responses with thorough detail.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    response_format: { type: 'json_object' },
-    max_tokens: 4096,
-  });
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a meeting documentation assistant that captures detailed discussions for long-term reference. Return structured JSON responses with thorough detail.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 4096,
+    });
 
-  const response = completion.choices[0].message.content;
-  console.log('GPT-4o analysis completed');
+    const response = completion.choices[0].message.content;
+    console.log('GPT-4o analysis completed');
 
-  return response;
+    return response;
+  } catch (error) {
+    // Check for API quota/billing issues
+    const quotaError = checkAPIQuotaError(error, 'openai');
+    if (quotaError) {
+      console.error('❌ OpenAI API Error:', quotaError);
+      throw new Error(quotaError);
+    }
+    throw error;
+  }
 };
 
 /**

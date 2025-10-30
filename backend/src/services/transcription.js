@@ -28,6 +28,31 @@ function getOpenAIClient() {
 }
 
 /**
+ * Check for API quota/billing errors
+ * @param {Error} error - Error object from API call
+ * @returns {string|null} User-friendly error message or null
+ */
+function checkAPIQuotaError(error) {
+  // OpenAI error codes
+  if (error.status === 429) {
+    return 'OpenAI API rate limit exceeded. Please wait a few minutes and try "Reprocess Meeting"';
+  }
+  if (error.status === 401) {
+    return 'OpenAI API key is invalid or expired. Please check your .env file';
+  }
+  if (error.status === 402 || error.code === 'insufficient_quota') {
+    return 'OpenAI account has insufficient credits. Please add credits at platform.openai.com/account/billing';
+  }
+  if (error.message && error.message.includes('quota')) {
+    return 'OpenAI API quota exceeded. Check your usage at platform.openai.com/account/usage';
+  }
+  if (error.message && error.message.includes('billing')) {
+    return 'OpenAI billing issue detected. Please check platform.openai.com/account/billing';
+  }
+  return null;
+}
+
+/**
  * Transcribe a single audio file (must be under 25MB)
  * @param {string} audioPath - Path to audio file
  * @param {string} language - Language code (optional)
@@ -75,10 +100,18 @@ const transcribeSingleFile = async (audioPath, language = 'en') => {
       segments: transcription.segments || [],
     };
   } catch (error) {
+    // Check for API quota/billing issues first
+    const quotaError = checkAPIQuotaError(error);
+    if (quotaError) {
+      console.error('❌ API Quota Error:', quotaError);
+      throw new Error(quotaError);
+    }
+
     // Check if it's a 413 error (payload too large)
     if (error.status === 413 || error.message.includes('413')) {
       throw new Error('PAYLOAD_TOO_LARGE');
     }
+
     console.error('Transcription error:', error);
     throw new Error(`Failed to transcribe audio: ${error.message}`);
   }
