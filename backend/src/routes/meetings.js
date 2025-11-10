@@ -307,6 +307,9 @@ async function processMeeting(meetingId, audioPath, title, date) {
         console.log('Step 6: Saving metadata...');
         const existingMetadata = getMeetingMetadata.get(meetingId);
 
+        // Extract AI model metadata
+        const aiModelInfo = analysis._metadata ? JSON.stringify(analysis._metadata) : null;
+
         // New format: discussion_topics, context, detailed_discussion
         // Old format for backwards compatibility: risks, open_questions (empty arrays)
         if (existingMetadata) {
@@ -315,6 +318,7 @@ async function processMeeting(meetingId, audioPath, title, date) {
             JSON.stringify(analysis.action_items || []),
             JSON.stringify([]), // risks - deprecated
             JSON.stringify([]), // open_questions - deprecated
+            aiModelInfo, // AI model metadata
             meetingId
           );
         } else {
@@ -323,7 +327,8 @@ async function processMeeting(meetingId, audioPath, title, date) {
             JSON.stringify(analysis.key_decisions || []),
             JSON.stringify(analysis.action_items || []),
             JSON.stringify([]), // risks - deprecated
-            JSON.stringify([])  // open_questions - deprecated
+            JSON.stringify([]),  // open_questions - deprecated
+            aiModelInfo // AI model metadata
           );
         }
 

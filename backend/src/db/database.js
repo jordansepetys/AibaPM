@@ -50,6 +50,7 @@ function initializeDatabase() {
       action_items TEXT,
       risks TEXT,
       questions TEXT,
+      ai_model_info TEXT,
       FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
     )
   `);
@@ -115,6 +116,16 @@ function initializeDatabase() {
     )
   `);
 
+  // Settings table - stores user preferences for AI model selection
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL UNIQUE,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log('Database initialized successfully');
 }
 
@@ -174,8 +185,8 @@ export const deleteMeeting = db.prepare(`
 
 // Meeting metadata
 export const createMeetingMetadata = db.prepare(`
-  INSERT INTO meeting_metadata (meeting_id, decisions, action_items, risks, questions)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO meeting_metadata (meeting_id, decisions, action_items, risks, questions, ai_model_info)
+  VALUES (?, ?, ?, ?, ?, ?)
 `);
 
 export const getMeetingMetadata = db.prepare(`
@@ -184,7 +195,7 @@ export const getMeetingMetadata = db.prepare(`
 
 export const updateMeetingMetadata = db.prepare(`
   UPDATE meeting_metadata
-  SET decisions = ?, action_items = ?, risks = ?, questions = ?
+  SET decisions = ?, action_items = ?, risks = ?, questions = ?, ai_model_info = ?
   WHERE meeting_id = ?
 `);
 
@@ -281,5 +292,61 @@ export const getSkillUsageStats = db.prepare(`
   WHERE skill_id = ?
   GROUP BY skill_id
 `);
+
+// Settings
+export const getSetting = db.prepare(`
+  SELECT * FROM settings WHERE key = ?
+`);
+
+export const getAllSettings = db.prepare(`
+  SELECT * FROM settings
+`);
+
+export const upsertSetting = db.prepare(`
+  INSERT INTO settings (key, value, updated_at)
+  VALUES (?, ?, CURRENT_TIMESTAMP)
+  ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+`);
+
+export const deleteSetting = db.prepare(`
+  DELETE FROM settings WHERE key = ?
+`);
+
+// Run migrations for existing databases
+function runMigrations() {
+  try {
+    // Migration: Add ai_model_info column to meeting_metadata table if it doesn't exist
+    const columns = db.pragma('table_info(meeting_metadata)');
+    const hasAiModelInfo = columns.some(col => col.name === 'ai_model_info');
+
+    if (!hasAiModelInfo) {
+      console.log('Running migration: Adding ai_model_info column to meeting_metadata table...');
+      db.exec('ALTER TABLE meeting_metadata ADD COLUMN ai_model_info TEXT');
+      console.log('Migration completed successfully');
+    }
+
+    // Initialize default settings if they don't exist
+    const defaultSettings = {
+      'ai.meeting_analysis': process.env.AI_BACKEND || 'anthropic',
+      'ai.chat': process.env.AI_BACKEND || 'anthropic',
+      'ai.wiki_updates': process.env.AI_BACKEND || 'anthropic',
+      'ai.mentor_feedback': process.env.AI_BACKEND || 'anthropic',
+    };
+
+    const existingSettings = getAllSettings.all();
+    const existingKeys = new Set(existingSettings.map(s => s.key));
+
+    for (const [key, value] of Object.entries(defaultSettings)) {
+      if (!existingKeys.has(key)) {
+        console.log(`Initializing default setting: ${key} = ${value}`);
+        upsertSetting.run(key, value);
+      }
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+}
+
+runMigrations();
 
 export default db;

@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getAIBackendForFeature } from './settingsService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,31 +107,89 @@ Transcript:
 Provide ONLY the JSON response, no additional text.`;
 
 /**
- * Analyze meeting transcript using AI
+ * Analyze meeting transcript using AI with automatic fallback
  * @param {string} transcript - Meeting transcript text
- * @param {string} backend - AI backend to use ('openai' or 'anthropic')
- * @returns {Promise<Object>} Structured analysis
+ * @param {string} backend - AI backend to use ('openai' or 'anthropic') - defaults to user setting
+ * @returns {Promise<Object>} Structured analysis with metadata about which model was used
  */
-export const analyzeMeeting = async (transcript, backend = AI_BACKEND) => {
+export const analyzeMeeting = async (transcript, backend = null) => {
   if (!transcript || transcript.trim().length === 0) {
     throw new Error('Transcript is empty');
   }
 
-  console.log(`Analyzing meeting with ${backend} backend...`);
+  // Get backend from settings if not specified
+  if (!backend) {
+    backend = getAIBackendForFeature('meeting_analysis');
+  }
+
+  let analysis;
+  let usedBackend = backend;
+  let usedModel = '';
+  let fallbackOccurred = false;
+
+  // Try primary backend first
+  if (backend === 'anthropic') {
+    console.log(`Analyzing meeting with Anthropic (Claude Sonnet 4.5)...`);
+    try {
+      analysis = await analyzeWithClaude(transcript);
+      usedModel = 'Claude Sonnet 4.5';
+    } catch (error) {
+      const quotaError = checkAPIQuotaError(error, 'anthropic');
+
+      // If it's a quota/auth error and OpenAI is available, fall back
+      if (quotaError && process.env.OPENAI_API_KEY) {
+        console.warn(`⚠️  Anthropic API failed: ${quotaError}`);
+        console.log(`🔄 Falling back to OpenAI (GPT-4o)...`);
+
+        try {
+          analysis = await analyzeWithGPT(transcript);
+          usedBackend = 'openai';
+          usedModel = 'GPT-4o';
+          fallbackOccurred = true;
+        } catch (fallbackError) {
+          console.error('❌ Fallback to OpenAI also failed:', fallbackError);
+          throw new Error(`Both APIs failed. Anthropic: ${quotaError}. OpenAI: ${fallbackError.message}`);
+        }
+      } else {
+        // No fallback available or non-quota error
+        throw error;
+      }
+    }
+  } else {
+    // Primary is OpenAI
+    console.log(`Analyzing meeting with OpenAI (GPT-4o)...`);
+    try {
+      analysis = await analyzeWithGPT(transcript);
+      usedModel = 'GPT-4o';
+    } catch (error) {
+      const quotaError = checkAPIQuotaError(error, 'openai');
+
+      // If it's a quota/auth error and Anthropic is available, fall back
+      if (quotaError && process.env.ANTHROPIC_API_KEY) {
+        console.warn(`⚠️  OpenAI API failed: ${quotaError}`);
+        console.log(`🔄 Falling back to Anthropic (Claude Sonnet 4.5)...`);
+
+        try {
+          analysis = await analyzeWithClaude(transcript);
+          usedBackend = 'anthropic';
+          usedModel = 'Claude Sonnet 4.5';
+          fallbackOccurred = true;
+        } catch (fallbackError) {
+          console.error('❌ Fallback to Anthropic also failed:', fallbackError);
+          throw new Error(`Both APIs failed. OpenAI: ${quotaError}. Anthropic: ${fallbackError.message}`);
+        }
+      } else {
+        // No fallback available or non-quota error
+        throw error;
+      }
+    }
+  }
 
   try {
-    let analysis;
-
-    if (backend === 'anthropic') {
-      analysis = await analyzeWithClaude(transcript);
-    } else {
-      analysis = await analyzeWithGPT(transcript);
-    }
-
     // Validate and parse the analysis
     const parsed = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
 
-    // Ensure all required fields exist
+    // Ensure all required fields exist and add metadata
     return {
       overview: parsed.overview || 'No overview available',
       discussion_topics: Array.isArray(parsed.discussion_topics) ? parsed.discussion_topics : [],
@@ -139,10 +198,17 @@ export const analyzeMeeting = async (transcript, backend = AI_BACKEND) => {
       action_items: Array.isArray(parsed.action_items) ? parsed.action_items : [],
       technical_details: Array.isArray(parsed.technical_details) ? parsed.technical_details : [],
       context: parsed.context || '',
+      // Metadata about which model was used
+      _metadata: {
+        usedBackend,
+        usedModel,
+        fallbackOccurred,
+        analyzedAt: new Date().toISOString(),
+      },
     };
   } catch (error) {
-    console.error('Analysis error:', error);
-    throw new Error(`Failed to analyze meeting: ${error.message}`);
+    console.error('Analysis parsing error:', error);
+    throw new Error(`Failed to parse analysis: ${error.message}`);
   }
 };
 
@@ -287,7 +353,7 @@ export const readSummary = async (summaryPath) => {
  * @returns {Promise<Object>} Mentor feedback
  */
 export const generateMentorFeedback = async (transcript, summary) => {
-  const backend = AI_BACKEND;
+  const backend = getAIBackendForFeature('mentor_feedback');
 
   const prompt = `You are an experienced technical mentor reviewing a meeting transcript.
 
@@ -353,7 +419,7 @@ Provide ONLY the JSON response, no additional text.`;
  * @returns {Promise<Object>} Wiki update suggestions
  */
 export const generateWikiUpdateSuggestions = async (currentWiki, transcript, summary, projectName) => {
-  const backend = AI_BACKEND;
+  const backend = getAIBackendForFeature('wiki_updates');
 
   // Use full transcript for better context (modern LLMs handle 100k+ tokens)
   const fullTranscript = transcript;

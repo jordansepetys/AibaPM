@@ -25,6 +25,7 @@ import wikiRouter from './routes/wiki.js';
 import searchRouter from './routes/search.js';
 import chatRouter from './routes/chat.js';
 import skillsRouter from './routes/skills.js';
+import settingsRouter from './routes/settings.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -75,6 +76,7 @@ app.use('/api/wiki', wikiRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/skills', skillsRouter);
+app.use('/api/settings', settingsRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

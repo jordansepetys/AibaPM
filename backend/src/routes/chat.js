@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { transcribeAudio } from '../services/transcription.js';
 import { findRelevantSkills, buildSkillsContext } from '../services/skillMatcher.js';
+import { getAIBackendForFeature } from '../services/settingsService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -144,8 +145,13 @@ async function buildProjectContext(projectId) {
 /**
  * Get AI response using Claude or GPT
  */
-async function getAIResponse(messages, systemPrompt, backend = AI_BACKEND) {
+async function getAIResponse(messages, systemPrompt, backend = null) {
   try {
+    // Get backend from settings if not specified
+    if (!backend) {
+      backend = getAIBackendForFeature('chat');
+    }
+
     if (backend === 'anthropic') {
       const client = getAnthropicClient();
       if (!client) {

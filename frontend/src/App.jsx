@@ -10,6 +10,7 @@ import GlobalSearch from './components/Search/GlobalSearch';
 import ProjectManager from './components/Projects/ProjectManager';
 import SkillsManager from './components/Skills/SkillsManager';
 import ChatSidebar from './components/Chat/ChatSidebar';
+import SettingsModal from './components/Settings/SettingsModal';
 import './App.css';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
   } = useStore();
 
   const [appTab, setAppTab] = useState('recording');
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     // Load projects and meetings on mount
@@ -73,12 +75,44 @@ function App() {
                 setAppTab('meetings');
               }}
             />
+            <button
+              onClick={() => setShowSettings(true)}
+              style={{
+                padding: '10px 16px',
+                background: 'rgba(102, 126, 234, 0.1)',
+                border: '2px solid rgba(102, 126, 234, 0.3)',
+                borderRadius: '10px',
+                color: '#667eea',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseOver={e => {
+                e.target.style.background = 'rgba(102, 126, 234, 0.2)';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseOut={e => {
+                e.target.style.background = 'rgba(102, 126, 234, 0.1)';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>⚙️</span>
+              <span>Settings</span>
+            </button>
           </div>
           <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
             AI-Powered Meeting Transcription & Project Management
           </p>
         </div>
       </header>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Main Content */}
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import useStore from '../../stores/useStore';
-import { meetingsAPI } from '../../services/api';
+import { meetingsAPI, settingsAPI } from '../../services/api';
 import MentorFeedback from './MentorFeedback';
 import WikiUpdateSuggestions from './WikiUpdateSuggestions';
 
@@ -14,6 +14,20 @@ const MeetingDetails = () => {
   const [metadata, setMetadata] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [settings, setSettings] = useState(null);
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const loadedSettings = await settingsAPI.getAll();
+        setSettings(loadedSettings);
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     if (selectedMeeting) {
@@ -88,9 +102,12 @@ const MeetingDetails = () => {
           if (!isProcessing) {
             setIsProcessing(true);
             if (!hasTranscript) {
-              setProcessingMessage('🎙️ Transcribing audio...');
+              setProcessingMessage('🎙️ Transcribing audio with OpenAI Whisper...');
             } else if (!hasSummary) {
-              setProcessingMessage('🤖 Generating AI summary...');
+              // Show which AI backend is being used from settings
+              const aiBackend = settings?.['ai.meeting_analysis'] || 'anthropic';
+              const modelName = aiBackend === 'anthropic' ? 'Claude Sonnet 4.5' : 'GPT-4o';
+              setProcessingMessage(`🤖 Generating AI summary with ${modelName}...`);
             }
           }
           console.log(`⏳ Still processing... (${pollCount}/${MAX_POLLS})`);
@@ -115,7 +132,9 @@ const MeetingDetails = () => {
     const initialCheck = async () => {
       if (!selectedMeeting.transcript_path || !selectedMeeting.summary_path) {
         setIsProcessing(true);
-        setProcessingMessage('🎙️ Starting processing...');
+        const aiBackend = settings?.['ai.meeting_analysis'] || 'anthropic';
+        const modelName = aiBackend === 'anthropic' ? 'Claude Sonnet 4.5' : 'GPT-4o';
+        setProcessingMessage(`🎙️ Starting processing (using ${modelName})...`);
         await checkProcessingStatus();
 
         // Set up interval for continuous polling
@@ -131,7 +150,7 @@ const MeetingDetails = () => {
         clearInterval(pollInterval);
       }
     };
-  }, [selectedMeeting?.id, selectedMeeting?.transcript_path, selectedMeeting?.summary_path]);
+  }, [selectedMeeting?.id, selectedMeeting?.transcript_path, selectedMeeting?.summary_path, settings]);
 
   const loadMeetingContent = async () => {
     if (!selectedMeeting) return;
@@ -194,7 +213,9 @@ const MeetingDetails = () => {
       setSummary(null);
       setMetadata(null);
       setIsProcessing(true);
-      setProcessingMessage('🔄 Reprocessing started - transcribing audio...');
+      const aiBackend = settings?.['ai.meeting_analysis'] || 'anthropic';
+      const modelName = aiBackend === 'anthropic' ? 'Claude Sonnet 4.5' : 'GPT-4o';
+      setProcessingMessage(`🔄 Reprocessing started - transcribing audio (using ${modelName})...`);
       setStatus('processing', 'Starting reprocessing...');
 
       // Call reprocess API (backend clears ERROR status in database)
@@ -366,6 +387,48 @@ const MeetingDetails = () => {
           <div style={{ textAlign: 'left' }}>
             {summary ? (
               <>
+                {/* AI Model Info Badge */}
+                {metadata?.ai_model_info && (() => {
+                  try {
+                    const modelInfo = JSON.parse(metadata.ai_model_info);
+                    return (
+                      <div style={{
+                        marginBottom: '20px',
+                        padding: '12px 16px',
+                        background: modelInfo.fallbackOccurred
+                          ? 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)'
+                          : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <span style={{ fontSize: '18px' }}>
+                          {modelInfo.fallbackOccurred ? '🔄' : '🤖'}
+                        </span>
+                        <div>
+                          {modelInfo.fallbackOccurred ? (
+                            <>
+                              <div style={{ fontWeight: 'bold' }}>Analyzed with {modelInfo.usedModel} (Fallback)</div>
+                              <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                                Primary API unavailable, automatically switched from {modelInfo.usedBackend === 'openai' ? 'Anthropic' : 'OpenAI'}
+                              </div>
+                            </>
+                          ) : (
+                            <div>Analyzed with {modelInfo.usedModel}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
+
                 {/* Overview */}
                 {summary.overview && (
                   <div style={{ marginBottom: '30px' }}>

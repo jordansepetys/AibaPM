@@ -314,6 +314,27 @@ export const skillsAPI = {
   },
 };
 
+// Settings API
+export const settingsAPI = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/api/settings');
+      return response.data.settings || {};
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  update: async (settings) => {
+    try {
+      const response = await api.put('/api/settings', { settings });
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+};
+
 // Health check
 export const healthCheck = async () => {
   try {
