@@ -9,6 +9,7 @@ const WikiEditor = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [viewMode, setViewMode] = useState('edit'); // 'edit' or 'view'
   const saveTimeoutRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -201,6 +202,49 @@ const WikiEditor = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* View Mode Toggle */}
+          <div style={{
+            display: 'flex',
+            gap: '5px',
+            background: '#fff',
+            borderRadius: '6px',
+            padding: '4px',
+            border: '1px solid #ced4da'
+          }}>
+            <button
+              onClick={() => setViewMode('edit')}
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                border: 'none',
+                borderRadius: '4px',
+                background: viewMode === 'edit' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: viewMode === 'edit' ? '#fff' : '#6c757d',
+                cursor: 'pointer',
+                fontWeight: viewMode === 'edit' ? 'bold' : 'normal',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              ✏️ Edit
+            </button>
+            <button
+              onClick={() => setViewMode('view')}
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                border: 'none',
+                borderRadius: '4px',
+                background: viewMode === 'view' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                color: viewMode === 'view' ? '#fff' : '#6c757d',
+                cursor: 'pointer',
+                fontWeight: viewMode === 'view' ? 'bold' : 'normal',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              👁️ View
+            </button>
+          </div>
+
           {/* Search */}
           <input
             type="text"
@@ -233,51 +277,53 @@ const WikiEditor = () => {
         </div>
       </div>
 
-      {/* Split Screen Editor */}
+      {/* Split Screen Editor / Full Preview */}
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: viewMode === 'edit' ? '1fr 1fr' : '1fr',
         overflow: 'hidden',
         minHeight: 0, // Important for flex scrolling
       }}>
-        {/* Editor Panel */}
-        <div style={{
-          borderRight: '1px solid #dee2e6',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          minHeight: 0,
-        }}>
+        {/* Editor Panel - only shown in edit mode */}
+        {viewMode === 'edit' && (
           <div style={{
-            padding: '10px 15px',
-            background: '#f8f9fa',
-            borderBottom: '1px solid #dee2e6',
-            fontWeight: 'bold',
-            fontSize: '14px',
-            flexShrink: 0,
+            borderRight: '1px solid #dee2e6',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            minHeight: 0,
           }}>
-            ✏️ Editor
-          </div>
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder="Write your project wiki in Markdown..."
-            style={{
-              flex: 1,
-              padding: '20px',
-              border: 'none',
+            <div style={{
+              padding: '10px 15px',
+              background: '#f8f9fa',
+              borderBottom: '1px solid #dee2e6',
+              fontWeight: 'bold',
               fontSize: '14px',
-              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-              lineHeight: '1.6',
-              resize: 'none',
-              outline: 'none',
-              overflowY: 'auto', // Enable scrolling
-              minHeight: 0,
-            }}
-          />
-        </div>
+              flexShrink: 0,
+            }}>
+              ✏️ Editor
+            </div>
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleContentChange}
+              placeholder="Write your project wiki in Markdown..."
+              style={{
+                flex: 1,
+                padding: '20px',
+                border: 'none',
+                fontSize: '14px',
+                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                lineHeight: '1.6',
+                resize: 'none',
+                outline: 'none',
+                overflowY: 'auto', // Enable scrolling
+                minHeight: 0,
+              }}
+            />
+          </div>
+        )}
 
         {/* Preview Panel */}
         <div style={{
