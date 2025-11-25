@@ -349,4 +349,14 @@ function runMigrations() {
 
 runMigrations();
 
+// Transaction helper for wrapping multiple operations atomically
+export function runTransaction(fn) {
+  return db.transaction(fn)();
+}
+
+// Transaction helper that returns the transaction function for manual execution
+export function createTransaction(fn) {
+  return db.transaction(fn);
+}
+
 export default db;

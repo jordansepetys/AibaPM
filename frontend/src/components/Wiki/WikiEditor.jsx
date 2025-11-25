@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import useStore from '../../stores/useStore';
 import { wikiAPI } from '../../services/api';
 
@@ -83,8 +84,15 @@ const WikiEditor = () => {
   };
 
   const getPreviewHtml = () => {
-    const html = marked(content);
-    return searchTerm ? highlightSearchTerm(html) : html;
+    const rawHtml = marked(content);
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li',
+        'a', 'strong', 'em', 'del', 'code', 'pre', 'blockquote', 'table', 'thead', 'tbody',
+        'tr', 'th', 'td', 'img', 'input', 'mark', 'span', 'div'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'type', 'checked', 'disabled'],
+    });
+    return searchTerm ? highlightSearchTerm(sanitizedHtml) : sanitizedHtml;
   };
 
   const formatLastSaved = () => {

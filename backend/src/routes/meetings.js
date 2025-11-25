@@ -9,11 +9,14 @@ import {
   createMeetingMetadata,
   getMeetingMetadata,
   updateMeetingMetadata,
+  runTransaction,
 } from '../db/database.js';
 import { saveAudioFile, validateAudioFile } from '../services/audioProcessor.js';
 import { transcribeWithRetry, saveTranscript } from '../services/transcription.js';
 import { analyzeMeeting, saveSummary } from '../services/aiAnalysis.js';
 import { buildSearchIndex } from '../services/searchIndex.js';
+import { validate, idParamSchema, createMeetingSchema } from '../middleware/validation.js';
+import { emitMeetingStatus, MeetingStatus } from '../services/socketService.js';
 
 const router = express.Router();
 
@@ -42,18 +45,18 @@ router.get('/', (req, res, next) => {
  * GET /api/meetings/:id
  * Get meeting details with metadata
  */
-router.get('/:id', (req, res, next) => {
+router.get('/:id', validate(idParamSchema, 'params'), (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const meeting = getMeetingById.get(parseInt(id, 10));
+    const meeting = getMeetingById.get(id);
 
     if (!meeting) {
       return res.status(404).json({ error: 'Meeting not found' });
     }
 
     // Get metadata if exists
-    const metadata = getMeetingMetadata.get(parseInt(id, 10));
+    const metadata = getMeetingMetadata.get(id);
 
     res.json({
       meeting,
@@ -130,11 +133,11 @@ router.post('/', async (req, res, next) => {
  * POST /api/meetings/:id/reprocess
  * Re-transcribe and analyze a meeting
  */
-router.post('/:id/reprocess', async (req, res, next) => {
+router.post('/:id/reprocess', validate(idParamSchema, 'params'), async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const meeting = getMeetingById.get(parseInt(id, 10));
+    const meeting = getMeetingById.get(id);
 
     if (!meeting) {
       return res.status(404).json({ error: 'Meeting not found' });
@@ -157,7 +160,7 @@ router.post('/:id/reprocess', async (req, res, next) => {
     );
 
     // Get updated meeting to return
-    const clearedMeeting = getMeetingById.get(parseInt(id, 10));
+    const clearedMeeting = getMeetingById.get(id);
 
     // Start reprocessing
     processMeeting(meeting.id, meeting.audio_path, meeting.title, meeting.date).catch(error => {
@@ -177,18 +180,18 @@ router.post('/:id/reprocess', async (req, res, next) => {
  * DELETE /api/meetings/:id
  * Delete a meeting
  */
-router.delete('/:id', (req, res, next) => {
+router.delete('/:id', validate(idParamSchema, 'params'), (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const meeting = getMeetingById.get(parseInt(id, 10));
+    const meeting = getMeetingById.get(id);
 
     if (!meeting) {
       return res.status(404).json({ error: 'Meeting not found' });
     }
 
     // Delete from database (cascade will handle metadata and search index)
-    deleteMeeting.run(parseInt(id, 10));
+    deleteMeeting.run(id);
 
     // Note: Audio/transcript files are kept until cleanup cron runs
 
@@ -229,25 +232,26 @@ async function calculateTimeout(audioPath) {
     const fileSizeMB = stats.size / (1024 * 1024);
 
     // Adaptive timeout based on file size:
-    // - Small files (<10MB): 5 minutes
-    // - Medium files (10-30MB): 10 minutes
-    // - Large files (30-50MB): 15 minutes
-    // - Very large files (50-80MB): 30 minutes (with retries + smaller chunks)
-    // - Huge files (>80MB): 45 minutes
+    // Timeouts account for: chunking, transcription, network retries (up to 155s/chunk), and AI analysis
+    // - Small files (<10MB): 8 minutes (single chunk + retries + AI)
+    // - Medium files (10-30MB): 15 minutes (2-3 chunks + retries + AI)
+    // - Large files (30-50MB): 40 minutes (4-5 chunks + retries + AI)
+    // - Very large files (50-80MB): 50 minutes (6-8 chunks with 5-min segments + retries)
+    // - Huge files (>80MB): 75 minutes (many chunks + retries)
     if (fileSizeMB < 10) {
-      return 5 * 60 * 1000; // 5 minutes
+      return 8 * 60 * 1000; // 8 minutes
     } else if (fileSizeMB < 30) {
-      return 10 * 60 * 1000; // 10 minutes
-    } else if (fileSizeMB < 50) {
       return 15 * 60 * 1000; // 15 minutes
+    } else if (fileSizeMB < 50) {
+      return 40 * 60 * 1000; // 40 minutes - increased for long recordings with chunking
     } else if (fileSizeMB < 80) {
-      return 30 * 60 * 1000; // 30 minutes (50MB+ files use 5-min chunks + 5 retries)
+      return 50 * 60 * 1000; // 50 minutes - increased for better reliability
     } else {
-      return 45 * 60 * 1000; // 45 minutes for huge files
+      return 75 * 60 * 1000; // 75 minutes for huge files - increased for safety
     }
   } catch (error) {
     console.warn('Could not determine file size, using default timeout:', error.message);
-    return 10 * 60 * 1000; // Default 10 minutes
+    return 15 * 60 * 1000; // Default 15 minutes
   }
 }
 
@@ -262,15 +266,20 @@ async function processMeeting(meetingId, audioPath, title, date) {
   try {
     console.log(`\n=== Processing meeting ${meetingId} (timeout: ${PROCESSING_TIMEOUT / 1000}s) ===`);
 
+    // Emit processing started status
+    emitMeetingStatus(meetingId, MeetingStatus.PROCESSING_STARTED);
+
     // Wrap the entire processing in a timeout
     await withTimeout(
       (async () => {
         // Step 1: Transcribe audio (with automatic chunking for large files)
         console.log('Step 1: Transcribing audio...');
+        emitMeetingStatus(meetingId, MeetingStatus.TRANSCRIBING, { message: 'Transcribing audio with OpenAI Whisper...' });
         const transcription = await transcribeWithRetry(audioPath, meetingId);
 
         // Step 2: Save transcript
         console.log('Step 2: Saving transcript...');
+        emitMeetingStatus(meetingId, MeetingStatus.SAVING, { message: 'Saving transcript...' });
         const transcriptPaths = await saveTranscript(
           transcription.text,
           meetingId,
@@ -284,65 +293,70 @@ async function processMeeting(meetingId, audioPath, title, date) {
 
         // Step 3: Analyze transcript
         console.log('Step 3: Analyzing meeting...');
+        emitMeetingStatus(meetingId, MeetingStatus.ANALYZING, { message: 'Generating AI summary...' });
         const analysis = await analyzeMeeting(transcription.text);
 
         // Step 4: Save summary
         console.log('Step 4: Saving summary...');
         const summaryPath = await saveSummary(analysis, meetingId);
 
-        // Step 5: Update meeting record
-        console.log('Step 5: Updating meeting record...');
-        const meeting = getMeetingById.get(meetingId);
-        updateMeeting.run(
-          meeting.title,
-          meeting.date,
-          Math.floor(transcription.duration || 0),
-          meeting.audio_path,
-          transcriptPaths.txtPath,
-          summaryPath,
-          meetingId
-        );
-
-        // Step 6: Save metadata
-        console.log('Step 6: Saving metadata...');
-        const existingMetadata = getMeetingMetadata.get(meetingId);
-
-        // Extract AI model metadata
-        const aiModelInfo = analysis._metadata ? JSON.stringify(analysis._metadata) : null;
-
-        // New format: discussion_topics, context, detailed_discussion
-        // Old format for backwards compatibility: risks, open_questions (empty arrays)
-        if (existingMetadata) {
-          updateMeetingMetadata.run(
-            JSON.stringify(analysis.key_decisions || []),
-            JSON.stringify(analysis.action_items || []),
-            JSON.stringify([]), // risks - deprecated
-            JSON.stringify([]), // open_questions - deprecated
-            aiModelInfo, // AI model metadata
+        // Step 5 & 6: Update meeting record and metadata in a transaction
+        console.log('Step 5 & 6: Updating meeting record and metadata (transaction)...');
+        runTransaction(() => {
+          const meeting = getMeetingById.get(meetingId);
+          updateMeeting.run(
+            meeting.title,
+            meeting.date,
+            Math.floor(transcription.duration || 0),
+            meeting.audio_path,
+            transcriptPaths.txtPath,
+            summaryPath,
             meetingId
           );
-        } else {
-          createMeetingMetadata.run(
-            meetingId,
-            JSON.stringify(analysis.key_decisions || []),
-            JSON.stringify(analysis.action_items || []),
-            JSON.stringify([]), // risks - deprecated
-            JSON.stringify([]),  // open_questions - deprecated
-            aiModelInfo // AI model metadata
-          );
-        }
+
+          // Extract AI model metadata
+          const aiModelInfo = analysis._metadata ? JSON.stringify(analysis._metadata) : null;
+          const existingMetadata = getMeetingMetadata.get(meetingId);
+
+          if (existingMetadata) {
+            updateMeetingMetadata.run(
+              JSON.stringify(analysis.key_decisions || []),
+              JSON.stringify(analysis.action_items || []),
+              JSON.stringify([]), // risks - deprecated
+              JSON.stringify([]), // open_questions - deprecated
+              aiModelInfo,
+              meetingId
+            );
+          } else {
+            createMeetingMetadata.run(
+              meetingId,
+              JSON.stringify(analysis.key_decisions || []),
+              JSON.stringify(analysis.action_items || []),
+              JSON.stringify([]), // risks - deprecated
+              JSON.stringify([]), // open_questions - deprecated
+              aiModelInfo
+            );
+          }
+        });
 
         // Step 7: Build search index
         console.log('Step 7: Building search index...');
         await buildSearchIndex(meetingId, transcription.text, analysis);
 
         console.log(`=== Meeting ${meetingId} processing complete ===\n`);
+
+        // Emit completion status
+        const completedMeeting = getMeetingById.get(meetingId);
+        emitMeetingStatus(meetingId, MeetingStatus.COMPLETED, { meeting: completedMeeting });
       })(),
       PROCESSING_TIMEOUT,
       `Meeting ${meetingId} processing`
     );
   } catch (error) {
     console.error(`Failed to process meeting ${meetingId}:`, error);
+
+    // Emit error status
+    emitMeetingStatus(meetingId, MeetingStatus.ERROR, { error: error.message });
 
     // Mark the meeting with an error by setting transcript_path to an error marker
     // This prevents infinite polling on the frontend

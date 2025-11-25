@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import useStore from '../../stores/useStore';
 import { chatAPI } from '../../services/api';
 
@@ -257,12 +258,19 @@ const AIChat = ({ isSidebar = false }) => {
       // User messages are plain text
       return msg.content;
     } else {
-      // AI messages render as markdown
-      const html = marked(msg.content, {
+      // AI messages render as markdown with sanitization
+      const rawHtml = marked(msg.content, {
         breaks: true, // Convert line breaks to <br>
         gfm: true, // GitHub Flavored Markdown
       });
-      return <div className="chat-markdown" dangerouslySetInnerHTML={{ __html: html }} />;
+      // Sanitize HTML to prevent XSS while allowing markdown elements
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li',
+          'a', 'strong', 'em', 'del', 'code', 'pre', 'blockquote', 'table', 'thead', 'tbody',
+          'tr', 'th', 'td', 'img', 'input', 'span', 'div'],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'type', 'checked', 'disabled'],
+      });
+      return <div className="chat-markdown" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
     }
   };
 
@@ -777,15 +785,31 @@ const AIChat = ({ isSidebar = false }) => {
           font-size: 0.85em;
         }
 
-        .chat-markdown ul,
+        .chat-markdown ul {
+          margin: 0.8em 0;
+          padding-left: 2em;
+          text-align: left;
+          list-style-type: disc;
+        }
+
         .chat-markdown ol {
           margin: 0.8em 0;
           padding-left: 2em;
           text-align: left;
+          list-style-type: decimal;
         }
 
         .chat-markdown li {
           margin: 0.3em 0;
+          display: list-item;
+        }
+
+        .chat-markdown ul ul {
+          list-style-type: circle;
+        }
+
+        .chat-markdown ul ul ul {
+          list-style-type: square;
         }
 
         .chat-markdown blockquote {
@@ -833,11 +857,13 @@ const AIChat = ({ isSidebar = false }) => {
           margin: 1em 0;
         }
 
-        .chat-markdown strong {
-          font-weight: 600;
+        .chat-markdown strong,
+        .chat-markdown b {
+          font-weight: 700;
         }
 
-        .chat-markdown em {
+        .chat-markdown em,
+        .chat-markdown i {
           font-style: italic;
         }
 
