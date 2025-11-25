@@ -9,11 +9,13 @@ const __dirname = path.dirname(__filename);
 
 const CHUNK_DIR = path.join(__dirname, '../../storage/chunks');
 
-// Configure FFmpeg path
+// Configure FFmpeg path (cross-platform)
 try {
-  // Try to find ffmpeg in PATH
-  const ffmpegPath = execSync('where ffmpeg', { encoding: 'utf-8' }).trim().split('\n')[0];
-  const ffprobePath = execSync('where ffprobe', { encoding: 'utf-8' }).trim().split('\n')[0];
+  const isWindows = process.platform === 'win32';
+  const findCmd = isWindows ? 'where' : 'which';
+
+  const ffmpegPath = execSync(`${findCmd} ffmpeg`, { encoding: 'utf-8' }).trim().split('\n')[0];
+  const ffprobePath = execSync(`${findCmd} ffprobe`, { encoding: 'utf-8' }).trim().split('\n')[0];
 
   console.log(`FFmpeg path: ${ffmpegPath}`);
   console.log(`FFprobe path: ${ffprobePath}`);
