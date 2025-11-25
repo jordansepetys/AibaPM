@@ -7,7 +7,7 @@ import MeetingTranscript from './MeetingTranscript';
 import MeetingActions from './MeetingActions';
 import ProcessingStatus from './ProcessingStatus';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 const MeetingDetails = () => {
   const { selectedMeeting, updateMeeting, setStatus } = useStore();

@@ -59,7 +59,8 @@ const AIChat = ({ isSidebar = false }) => {
 
   const fetchModelInfo = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/health');
+      const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
+      const response = await fetch(`${apiUrl}/api/health`);
       const data = await response.json();
 
       if (data.modelName) {
