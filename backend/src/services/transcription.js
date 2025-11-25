@@ -15,18 +15,17 @@ const __dirname = path.dirname(__filename);
 const TRANSCRIPT_DIR = path.join(__dirname, '../../storage/transcripts');
 const SIZE_THRESHOLD_MB = 24; // Trigger chunking if over 24MB
 
-// Initialize OpenAI client (lazy initialization)
-let openai = null;
-
+// Create a fresh OpenAI client for each request to avoid stale connection issues
 function getOpenAIClient() {
-  if (!openai && process.env.OPENAI_API_KEY) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 300000, // 5 minutes timeout for large file uploads
-      maxRetries: 0, // Disable SDK retries, we handle our own
-    });
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
   }
-  return openai;
+  // Create fresh client each time - avoids connection pooling issues
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 600000, // 10 minutes timeout for large file uploads
+    maxRetries: 0, // Disable SDK retries, we handle our own
+  });
 }
 
 /**
@@ -85,23 +84,39 @@ const transcribeSingleFile = async (audioPath, language = 'en') => {
     // Use read stream
     const audioStream = fsSync.createReadStream(fullAudioPath);
 
-    // Call Whisper API
-    const transcription = await client.audio.transcriptions.create({
-      file: audioStream,
-      model: 'whisper-1',
-      language: language,
-      response_format: 'verbose_json', // Get timestamps
-    });
+    // Log when sending to API
+    const startTime = Date.now();
+    console.log(`[${new Date().toISOString()}] Sending to Whisper API...`);
 
-    console.log(`Transcription completed: ${transcription.text.length} characters`);
+    // Progress logging for long requests
+    const progressInterval = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      console.log(`[Whisper] Still waiting... ${elapsed}s elapsed`);
+    }, 30000); // Log every 30 seconds
 
-    return {
-      text: transcription.text,
-      language: transcription.language,
-      duration: transcription.duration,
-      segments: transcription.segments || [],
-    };
+    try {
+      // Call Whisper API
+      const transcription = await client.audio.transcriptions.create({
+        file: audioStream,
+        model: 'whisper-1',
+        language: language,
+        response_format: 'verbose_json', // Get timestamps
+      });
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[${new Date().toISOString()}] Transcription completed in ${elapsed}s: ${transcription.text.length} characters`);
+
+      return {
+        text: transcription.text,
+        language: transcription.language,
+        duration: transcription.duration,
+        segments: transcription.segments || [],
+      };
+    } finally {
+      clearInterval(progressInterval);
+    }
   } catch (error) {
+    console.error(`[${new Date().toISOString()}] Transcription error:`, error.message);
     // Check for API quota/billing issues first
     const quotaError = checkAPIQuotaError(error);
     if (quotaError) {

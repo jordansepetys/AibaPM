@@ -123,6 +123,15 @@ export const meetingsAPI = {
     }
   },
 
+  cancel: async (id) => {
+    try {
+      const response = await api.post(`/api/meetings/${id}/cancel`);
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/api/meetings/${id}`);

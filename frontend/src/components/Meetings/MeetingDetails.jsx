@@ -53,6 +53,10 @@ const MeetingDetails = () => {
         setIsProcessing(false);
         setProcessingMessage(`Processing failed: ${data.error}`);
         break;
+      case 'CANCELLED':
+        setIsProcessing(false);
+        setProcessingMessage(data.message || 'Processing cancelled.');
+        break;
     }
   }, [updateMeeting]);
 
@@ -111,6 +115,13 @@ const MeetingDetails = () => {
           const errorMessage = meeting.transcript_path.substring(7);
           setIsProcessing(false);
           setProcessingMessage(`Processing failed: ${errorMessage}`);
+          if (pollInterval) clearInterval(pollInterval);
+          return;
+        }
+
+        if (meeting.transcript_path === 'CANCELLED') {
+          setIsProcessing(false);
+          setProcessingMessage('Processing cancelled. Click "Reprocess Meeting" to try again.');
           if (pollInterval) clearInterval(pollInterval);
           return;
         }
@@ -230,6 +241,27 @@ const MeetingDetails = () => {
     }
   };
 
+  const handleCancelProcessing = async () => {
+    if (!selectedMeeting) return;
+
+    try {
+      const response = await meetingsAPI.cancel(selectedMeeting.id);
+      const cancelledMeeting = response.meeting || response;
+
+      updateMeeting(selectedMeeting.id, cancelledMeeting);
+
+      setIsProcessing(false);
+      setProcessingMessage('Processing cancelled. Click "Reprocess Meeting" to try again.');
+      setStatus('idle');
+
+      // Clear the message after a few seconds
+      setTimeout(() => setProcessingMessage(''), 5000);
+    } catch (error) {
+      console.error('Cancel failed:', error);
+      setStatus('error', error.message);
+    }
+  };
+
   if (!selectedMeeting) {
     return (
       <div style={{
@@ -286,21 +318,39 @@ const MeetingDetails = () => {
         <div style={{ fontSize: '14px', color: '#6c757d' }}>
           {formatDate(selectedMeeting.date)}
         </div>
-        <button
-          onClick={handleReprocess}
-          style={{
-            marginTop: '10px',
-            padding: '6px 12px',
-            fontSize: '13px',
-            background: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Reprocess Meeting
-        </button>
+        <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+          {isProcessing ? (
+            <button
+              onClick={handleCancelProcessing}
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Stop Processing
+            </button>
+          ) : (
+            <button
+              onClick={handleReprocess}
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Reprocess Meeting
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

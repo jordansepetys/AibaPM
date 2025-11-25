@@ -177,6 +177,47 @@ router.post('/:id/reprocess', validate(idParamSchema, 'params'), async (req, res
 });
 
 /**
+ * POST /api/meetings/:id/cancel
+ * Cancel/stop processing for a meeting (resets to allow reprocessing)
+ */
+router.post('/:id/cancel', validate(idParamSchema, 'params'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const meeting = getMeetingById.get(id);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Meeting not found' });
+    }
+
+    // Mark as cancelled - this won't stop the running process but will reset the state
+    console.log(`Cancelling processing for meeting ${meeting.id}...`);
+    updateMeeting.run(
+      meeting.title,
+      meeting.date,
+      0, // duration
+      meeting.audio_path,
+      'CANCELLED', // Mark as cancelled so frontend knows
+      null, // Clear summary_path
+      meeting.id
+    );
+
+    // Emit cancelled status via socket
+    emitMeetingStatus(id, 'CANCELLED', { message: 'Processing cancelled by user' });
+
+    // Get updated meeting to return
+    const cancelledMeeting = getMeetingById.get(id);
+
+    res.json({
+      message: 'Processing cancelled. Click "Reprocess Meeting" to try again.',
+      meeting: cancelledMeeting,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * DELETE /api/meetings/:id
  * Delete a meeting
  */
