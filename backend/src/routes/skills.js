@@ -3,6 +3,7 @@ import * as db from '../db/database.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { validate, createSkillSchema, updateSkillSchema, idParamSchema } from '../middleware/validation.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,10 +119,10 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/skills/:id - Get single skill by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', validate(idParamSchema, 'params'), async (req, res) => {
   try {
     const { id } = req.params;
-    const skill = db.getSkillById.get(parseInt(id));
+    const skill = db.getSkillById.get(id);
 
     if (!skill) {
       return res.status(404).json({
@@ -164,7 +165,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/skills - Create new skill
-router.post('/', async (req, res) => {
+router.post('/', validate(createSkillSchema), async (req, res) => {
   try {
     const {
       name,
@@ -176,28 +177,7 @@ router.post('/', async (req, res) => {
       autoActivate,
     } = req.body;
 
-    // Validation
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill name is required',
-      });
-    }
-
-    if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill content is required',
-      });
-    }
-
-    if (!Array.isArray(triggerKeywords)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Trigger keywords must be an array',
-      });
-    }
-
+    // Additional validation: project ID required for non-global skills
     if (!isGlobal && !projectId) {
       return res.status(400).json({
         success: false,
@@ -251,7 +231,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/skills/:id - Update existing skill
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate(idParamSchema, 'params'), validate(updateSkillSchema), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -263,33 +243,11 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     // Check if skill exists
-    const existingSkill = db.getSkillById.get(parseInt(id));
+    const existingSkill = db.getSkillById.get(id);
     if (!existingSkill) {
       return res.status(404).json({
         success: false,
         message: 'Skill not found',
-      });
-    }
-
-    // Validation
-    if (name && !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill name cannot be empty',
-      });
-    }
-
-    if (content && !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill content cannot be empty',
-      });
-    }
-
-    if (triggerKeywords && !Array.isArray(triggerKeywords)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Trigger keywords must be an array',
       });
     }
 
@@ -308,7 +266,7 @@ router.put('/:id', async (req, res) => {
       content?.trim() || existingSkill.content,
       JSON.stringify(triggerKeywords || JSON.parse(existingSkill.trigger_keywords)),
       autoActivate !== undefined ? (autoActivate ? 1 : 0) : existingSkill.auto_activate,
-      parseInt(id)
+      id
     );
 
     // Handle file operations
@@ -330,7 +288,7 @@ router.put('/:id', async (req, res) => {
     }
 
     // Fetch updated skill
-    const updatedSkill = db.getSkillById.get(parseInt(id));
+    const updatedSkill = db.getSkillById.get(id);
 
     res.json({
       success: true,
@@ -353,12 +311,12 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/skills/:id - Delete skill
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validate(idParamSchema, 'params'), async (req, res) => {
   try {
     const { id } = req.params;
 
     // Check if skill exists
-    const skill = db.getSkillById.get(parseInt(id));
+    const skill = db.getSkillById.get(id);
     if (!skill) {
       return res.status(404).json({
         success: false,
@@ -375,7 +333,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     // Delete from database (cascade will delete usage records)
-    db.deleteSkill.run(parseInt(id));
+    db.deleteSkill.run(id);
 
     res.json({
       success: true,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useStore from '../../stores/useStore';
 import { skillsAPI } from '../../services/api';
+import './Skills.css';
 
 const SkillEditor = ({ skill, onSave, onCancel }) => {
   const { projects, setStatus } = useStore();
@@ -30,6 +31,17 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
     }
   }, [skill]);
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onCancel]);
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -43,6 +55,12 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
         triggerKeywords: [...prev.triggerKeywords, keyword]
       }));
       setKeywordInput('');
+    }
+  };
+
+  const handleKeywordKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleAddKeyword(e);
     }
   };
 
@@ -91,11 +109,9 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
       };
 
       if (skill) {
-        // Update existing skill
         await skillsAPI.update(skill.id, skillData);
         setStatus('success', 'Skill updated successfully!');
       } else {
-        // Create new skill
         await skillsAPI.create(skillData);
         setStatus('success', 'Skill created successfully!');
       }
@@ -110,101 +126,48 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: '#fff',
-        borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        maxWidth: '700px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>
+    <div className="skill-editor-overlay" onClick={onCancel}>
+      <div className="skill-editor" onClick={(e) => e.stopPropagation()}>
+        <div className="skill-editor__header">
+          <h2 className="skill-editor__title">
             {skill ? 'Edit Skill' : 'Create New Skill'}
           </h2>
-          <button
-            onClick={onCancel}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#666'
-            }}
-          >
-            ✕
+          <button onClick={onCancel} className="skill-editor__close-btn">
+            &times;
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+        <form onSubmit={handleSubmit} className="skill-editor__form">
           {/* Name */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
-              Name *
-            </label>
+          <div className="skill-editor__field">
+            <label className="skill-editor__label">Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
               placeholder="e.g., Status Update Format"
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
+              className="skill-editor__input"
               required
             />
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
-              Description
-            </label>
+          <div className="skill-editor__field">
+            <label className="skill-editor__label">Description</label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Brief description of this skill..."
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
+              className="skill-editor__input"
             />
           </div>
 
           {/* Scope */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
-              Scope *
-            </label>
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+          <div className="skill-editor__field">
+            <label className="skill-editor__label">Scope *</label>
+            <div className="skill-editor__scope-options">
+              <label className="skill-editor__scope-option">
                 <input
                   type="radio"
                   checked={formData.isGlobal}
@@ -212,16 +175,14 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
                     handleChange('isGlobal', true);
                     handleChange('projectId', null);
                   }}
-                  style={{ marginRight: '5px' }}
                 />
                 Global (all projects)
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <label className="skill-editor__scope-option">
                 <input
                   type="radio"
                   checked={!formData.isGlobal}
                   onChange={() => handleChange('isGlobal', false)}
-                  style={{ marginRight: '5px' }}
                 />
                 Project-specific
               </label>
@@ -230,13 +191,7 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
               <select
                 value={formData.projectId || ''}
                 onChange={(e) => handleChange('projectId', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '14px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                className="skill-editor__select"
                 required
               >
                 <option value="">Select a project...</option>
@@ -250,155 +205,87 @@ const SkillEditor = ({ skill, onSave, onCancel }) => {
           </div>
 
           {/* Content (Markdown) */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
-              Content (Markdown) *
-            </label>
+          <div className="skill-editor__field">
+            <label className="skill-editor__label">Content (Markdown) *</label>
             <textarea
               value={formData.content}
               onChange={(e) => handleChange('content', e.target.value)}
               placeholder="# Skill Instructions&#10;&#10;When the user asks about [topic], respond with...&#10;&#10;## Format&#10;- Use bullet points&#10;- Be concise"
-              style={{
-                width: '100%',
-                minHeight: '200px',
-                padding: '10px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontFamily: 'monospace',
-                resize: 'vertical'
-              }}
+              className="skill-editor__textarea"
               required
             />
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+            <div className="skill-editor__hint">
               Use Markdown formatting. This content will be injected into the AI's system prompt when activated.
             </div>
           </div>
 
           {/* Trigger Keywords */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>
-              Trigger Keywords *
-            </label>
-            <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+          <div className="skill-editor__field">
+            <label className="skill-editor__label">Trigger Keywords *</label>
+            <div className="skill-editor__keyword-input">
               <input
                 type="text"
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddKeyword(e);
-                  }
-                }}
+                onKeyDown={handleKeywordKeyDown}
                 placeholder="Enter a keyword or phrase..."
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  fontSize: '14px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                className="skill-editor__input"
               />
               <button
                 type="button"
                 onClick={handleAddKeyword}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  background: '#8b5cf6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className="skill-editor__add-btn"
               >
                 + Add
               </button>
             </div>
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            <div className="skill-editor__keywords">
               {formData.triggerKeywords.map((keyword, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    padding: '5px 10px',
-                    background: '#e0e0e0',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
+                <span key={idx} className="skill-editor__keyword-tag">
                   {keyword}
                   <button
                     type="button"
                     onClick={() => handleRemoveKeyword(keyword)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      color: '#666',
-                      padding: 0,
-                      lineHeight: 1
-                    }}
+                    className="skill-editor__keyword-remove"
                   >
-                    ✕
+                    &times;
                   </button>
                 </span>
               ))}
             </div>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+            <div className="skill-editor__hint">
               Add keywords or phrases that will trigger this skill in chat conversations.
             </div>
           </div>
 
           {/* Auto-activate */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+          <div className="skill-editor__checkbox">
+            <label className="skill-editor__checkbox-label">
               <input
                 type="checkbox"
                 checked={formData.autoActivate}
                 onChange={(e) => handleChange('autoActivate', e.target.checked)}
-                style={{ marginRight: '8px' }}
               />
-              <span style={{ fontWeight: 'bold' }}>Auto-activate when keywords match</span>
+              Auto-activate when keywords match
             </label>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px', marginLeft: '24px' }}>
+            <div className="skill-editor__checkbox-hint">
               If unchecked, this skill will only activate when manually selected.
             </div>
           </div>
 
           {/* Buttons */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <div className="skill-editor__actions">
             <button
               type="button"
               onClick={onCancel}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                background: '#e0e0e0',
-                color: '#333',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+              className="skill-editor__cancel-btn"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                background: saving ? '#ccc' : '#8b5cf6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: saving ? 'not-allowed' : 'pointer'
-              }}
+              className="skill-editor__submit-btn"
             >
               {saving ? 'Saving...' : (skill ? 'Update Skill' : 'Create Skill')}
             </button>

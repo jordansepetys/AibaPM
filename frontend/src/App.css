@@ -228,3 +228,277 @@ textarea:focus,
 select:focus {
   outline: none;
 }
+
+/* ============================================
+   Tab Navigation
+   ============================================ */
+.tab-navigation {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover:not(.tab-button--active) {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.tab-button--active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.tab-button__icon {
+  font-size: 16px;
+}
+
+.tab-button__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.tab-button:not(.tab-button--active) .tab-button__badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+.app-header {
+  padding: 20px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  border: none;
+  border-radius: 0;
+}
+
+.app-header__content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.app-header__top {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 15px;
+}
+
+.app-header__title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: -0.5px;
+}
+
+.app-header__subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ============================================
+   Settings Button
+   ============================================ */
+.settings-button {
+  padding: 10px 16px;
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.settings-button:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.settings-button__icon {
+  font-size: 18px;
+}
+
+/* ============================================
+   Stats Cards
+   ============================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 30px;
+}
+
+.stat-card {
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card__bg-circle {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  opacity: 0.1;
+}
+
+.stat-card__bg-circle--purple {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.stat-card__bg-circle--teal {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.stat-card__bg-circle--pink {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.stat-card__label {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-card__value {
+  margin: 0;
+  font-size: 42px;
+  font-weight: bold;
+}
+
+.stat-card__text {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+/* ============================================
+   Empty State / Getting Started
+   ============================================ */
+.getting-started {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 16px;
+  padding: 32px;
+  margin-top: 30px;
+  text-align: center;
+}
+
+.getting-started__icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.getting-started__title {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.getting-started__text {
+  margin: 0 0 24px 0;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.getting-started__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+/* ============================================
+   Skeleton Loading
+   ============================================ */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e5e7eb 0%,
+    #f3f4f6 50%,
+    #e5e7eb 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-card {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+}
+
+/* ============================================
+   Meetings Layout
+   ============================================ */
+.meetings-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 20px;
+  height: calc(100vh - 250px);
+  min-height: 600px;
+}
+
+/* ============================================
+   Main Content Container
+   ============================================ */
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}

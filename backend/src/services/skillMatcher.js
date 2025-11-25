@@ -221,9 +221,9 @@ function estimateTokens(content) {
 }
 
 /**
- * Compress skill content (extract key sections only)
- * Simplified: Takes first half of content
- * Future: Could extract headers, lists, code blocks
+ * Compress skill content intelligently
+ * Finds natural break points (paragraphs, headers, list items)
+ * Preserves complete sections rather than cutting mid-sentence
  *
  * @param {string} content - Full markdown content
  * @returns {string} Compressed version
@@ -231,11 +231,42 @@ function estimateTokens(content) {
 function compressSkillContent(content) {
   if (!content) return '';
 
-  // Simple compression: take first half
-  const halfPoint = Math.floor(content.length / 2);
-  const compressed = content.substring(0, halfPoint);
+  const targetLength = Math.floor(content.length / 2);
 
-  return compressed + '\n\n[...content compressed...]';
+  // Try to find natural break points in order of preference
+  const breakPoints = [
+    '\n\n## ',   // Markdown H2 header
+    '\n\n### ', // Markdown H3 header
+    '\n\n',     // Double newline (paragraph break)
+    '\n- ',     // List item
+    '\n* ',     // List item (asterisk)
+    '. ',       // Sentence end
+    '\n',       // Single newline
+  ];
+
+  let bestBreak = targetLength;
+
+  for (const breakPoint of breakPoints) {
+    // Look for break points around the target length (within 30% range)
+    const searchStart = Math.floor(targetLength * 0.7);
+    const searchEnd = Math.floor(targetLength * 1.3);
+    const searchArea = content.substring(searchStart, searchEnd);
+
+    const breakIndex = searchArea.lastIndexOf(breakPoint);
+    if (breakIndex !== -1) {
+      bestBreak = searchStart + breakIndex + breakPoint.length;
+      break;
+    }
+  }
+
+  // Ensure we don't cut in the middle of a word
+  while (bestBreak < content.length && content[bestBreak] !== ' ' && content[bestBreak] !== '\n') {
+    bestBreak++;
+  }
+
+  const compressed = content.substring(0, bestBreak).trim();
+
+  return compressed + '\n\n*[Content truncated for context limit]*';
 }
 
 /**

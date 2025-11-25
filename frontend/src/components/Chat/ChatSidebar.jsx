@@ -19,6 +19,26 @@ const ChatSidebar = () => {
     localStorage.setItem('chatPanelWidth', panelWidth.toString());
   }, [panelWidth]);
 
+  // Global keyboard shortcut: 'z' to toggle chat (when not typing)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if typing in an input, textarea, or contenteditable
+      const tag = e.target.tagName.toLowerCase();
+      const isEditable = e.target.isContentEditable;
+      if (tag === 'input' || tag === 'textarea' || isEditable) {
+        return;
+      }
+
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        setChatSidebarOpen(!isChatSidebarOpen);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isChatSidebarOpen, setChatSidebarOpen]);
+
   // Handle resize drag
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -149,7 +169,7 @@ const ChatSidebar = () => {
                   e.target.style.background = 'rgba(255, 255, 255, 0.25)';
                   e.target.style.transform = 'scale(1)';
                 }}
-                title="Collapse chat panel"
+                title="Collapse chat (Z)"
               >
                 ‹
               </button>
@@ -169,7 +189,7 @@ const ChatSidebar = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-              title="Expand chat panel"
+              title="Expand chat (Z)"
             >
               ›
             </button>
