@@ -15,7 +15,9 @@
     "dev:backend": "npm run dev --workspace=backend",
     "start": "npm run dev",
     "clean": "node kill-ports.js",
-    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend"
+    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "start:prod": "cd backend && node src/server.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

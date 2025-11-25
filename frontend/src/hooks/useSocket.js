@@ -1,7 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// In production (same origin), use relative URL. In dev, use localhost:3001
+const SOCKET_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3001');
 
 export function useSocket() {
   const socketRef = useRef(null);

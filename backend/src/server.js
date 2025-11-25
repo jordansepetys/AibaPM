@@ -121,8 +121,14 @@ app.use('/api', generalLimiter);
 // Make upload middleware available to routes
 app.set('upload', upload);
 
-// Static files
+// Static files - audio storage
 app.use('/storage', express.static(path.join(__dirname, '../storage')));
+
+// Serve frontend build in production
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendPath));
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -154,8 +160,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - serve frontend for non-API routes (SPA client-side routing)
 app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+
+  // In production, serve the React app for all non-API routes
+  if (process.env.NODE_ENV === 'production') {
+    return res.sendFile(path.join(frontendPath, 'index.html'));
+  }
+
   res.status(404).json({ error: 'Route not found' });
 });
 
