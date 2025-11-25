@@ -80,8 +80,38 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
+// Simple password protection (HTTP Basic Auth)
+// Set APP_PASSWORD env var to enable
+const basicAuth = (req, res, next) => {
+  const password = process.env.APP_PASSWORD;
+
+  // Skip auth if no password set (local development)
+  if (!password) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Aiba PM"');
+    return res.status(401).send('Authentication required');
+  }
+
+  const credentials = Buffer.from(authHeader.slice(6), 'base64').toString();
+  const [user, pass] = credentials.split(':');
+
+  // Username can be anything, just check password
+  if (pass === password) {
+    return next();
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Aiba PM"');
+  return res.status(401).send('Invalid password');
+};
+
 // Middleware
 app.use(cors(corsOptions));
+app.use(basicAuth); // Password protection before everything else
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
