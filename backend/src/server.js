@@ -28,6 +28,7 @@ import meetingsRouter from './routes/meetings.js';
 import wikiRouter from './routes/wiki.js';
 import searchRouter from './routes/search.js';
 import chatRouter from './routes/chat.js';
+import { setupAudioCleanupCron, cleanupOldAudioFiles } from './services/audioProcessor.js';
 import skillsRouter from './routes/skills.js';
 import settingsRouter from './routes/settings.js';
 
@@ -182,8 +183,15 @@ const httpServer = http.createServer(app);
 initializeSocketIO(httpServer, corsOptions);
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`WebSocket support enabled`);
+
+  // Setup audio cleanup cron job and run initial cleanup
+  setupAudioCleanupCron();
+  const deleted = await cleanupOldAudioFiles();
+  if (deleted > 0) {
+    console.log(`Initial cleanup removed ${deleted} old audio file(s)`);
+  }
 });
