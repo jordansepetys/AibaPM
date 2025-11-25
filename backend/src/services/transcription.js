@@ -22,6 +22,8 @@ function getOpenAIClient() {
   if (!openai && process.env.OPENAI_API_KEY) {
     openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      timeout: 300000, // 5 minutes timeout for large file uploads
+      maxRetries: 0, // Disable SDK retries, we handle our own
     });
   }
   return openai;
@@ -295,10 +297,46 @@ export const transcribeWithRetry = async (audioPath, meetingId = null, progressC
         return await transcribeSingleFile(fullAudioPath);
       } catch (error) {
         // If direct transcription fails with 413, fall through to chunking
-        if (error.message !== 'PAYLOAD_TOO_LARGE') {
-          throw error;
+        if (error.message === 'PAYLOAD_TOO_LARGE') {
+          console.warn('Direct transcription failed with 413 - falling back to chunking');
+        } else {
+          // Check if it's a network error - if so, retry
+          const isNetworkError = error.message.includes('Connection error') ||
+                                  error.message.includes('ECONNRESET') ||
+                                  error.message.includes('ETIMEDOUT') ||
+                                  error.message.includes('timeout') ||
+                                  error.message.includes('ECONNREFUSED') ||
+                                  error.message.includes('fetch failed');
+
+          if (isNetworkError) {
+            console.warn('⚠️  Network error during direct transcription - retrying with backoff...');
+            const MAX_RETRIES = 5;
+
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+              const delay = Math.pow(2, attempt) * 2500; // 5s, 10s, 20s, 40s, 80s
+              console.log(`Retrying in ${delay / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+
+              try {
+                const result = await transcribeSingleFile(fullAudioPath);
+                console.log(`✅ Transcription succeeded on retry ${attempt}`);
+                return result;
+              } catch (retryError) {
+                console.error(`❌ Retry ${attempt} failed:`, retryError.message);
+                if (retryError.message === 'PAYLOAD_TOO_LARGE') {
+                  console.warn('Payload too large - falling back to chunking');
+                  break;
+                }
+                if (attempt === MAX_RETRIES) {
+                  throw new Error(`Failed to transcribe after ${MAX_RETRIES} retries due to network issues. Please check your internet connection and try again.`);
+                }
+              }
+            }
+          } else {
+            // Non-network error, throw immediately
+            throw error;
+          }
         }
-        console.warn('Direct transcription failed with 413 - falling back to chunking');
       }
     }
 

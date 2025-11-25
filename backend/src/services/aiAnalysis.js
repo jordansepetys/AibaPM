@@ -15,6 +15,22 @@ const AI_BACKEND = process.env.AI_BACKEND || 'openai';
 let anthropic = null;
 let openai = null;
 
+/**
+ * Strip markdown code blocks from AI response
+ * @param {string} text - Text that may contain markdown code blocks
+ * @returns {string} Cleaned text with code blocks removed
+ */
+function stripMarkdownCodeBlocks(text) {
+  if (!text) return text;
+
+  // Remove ```json ... ``` or ``` ... ``` wrappers
+  const cleaned = text.trim()
+    .replace(/^```(?:json)?\s*\n?/i, '')  // Remove opening ```json or ```
+    .replace(/\n?```\s*$/, '');           // Remove closing ```
+
+  return cleaned.trim();
+}
+
 function getAnthropicClient() {
   if (!anthropic && process.env.ANTHROPIC_API_KEY) {
     anthropic = new Anthropic({
@@ -240,7 +256,8 @@ const analyzeWithClaude = async (transcript) => {
     const response = message.content[0].text;
     console.log('Claude analysis completed');
 
-    return response;
+    // Strip markdown code blocks if present
+    return stripMarkdownCodeBlocks(response);
   } catch (error) {
     // Check for API quota/billing issues
     const quotaError = checkAPIQuotaError(error, 'anthropic');
@@ -385,7 +402,7 @@ Provide ONLY the JSON response, no additional text.`;
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
       });
-      feedback = message.content[0].text;
+      feedback = stripMarkdownCodeBlocks(message.content[0].text);
     } else {
       const client = getOpenAIClient();
       if (!client) {
@@ -513,7 +530,7 @@ Provide ONLY the JSON response, no additional text.`;
         max_tokens: 8000, // Increased from 3000 to capture detailed nuances and multiple updates
         messages: [{ role: 'user', content: prompt }],
       });
-      suggestions = message.content[0].text;
+      suggestions = stripMarkdownCodeBlocks(message.content[0].text);
     } else {
       const client = getOpenAIClient();
       if (!client) {
