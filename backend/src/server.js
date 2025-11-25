@@ -34,13 +34,14 @@ import settingsRouter from './routes/settings.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Rate limiting configuration
+// Rate limiting configuration - only in production
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 500 : 10000, // Much higher limit, skip in dev
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== 'production', // Skip rate limiting in development
 });
 
 const uploadLimiter = rateLimit({
